@@ -1,0 +1,11 @@
+#Code to set up equations and explore structure of wild foods model
+##Date initiated: October 3, 2024
+#Authors: Marie K. Gutgesell 
+
+
+##Read in Libraries (will need for ODEs later)
+using Parameters: @with_kw, @unpack
+using LinearAlgebra: eigvals
+using ForwardDiff
+using QuadGK: quadgk
+
