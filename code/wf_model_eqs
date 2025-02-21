@@ -29,7 +29,7 @@ function logistic!(dR, R, p, t)
 end
 
 #Parameters
-r = 0.1
+r = 0.3
 
 K = 100.0
 R0 = 10.0
