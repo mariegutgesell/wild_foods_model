@@ -13,31 +13,4 @@ using Plots
 #p = Parameters
 #t = 
 
-#Set up paramters for a simple logistic growth model for R
-#@with_kw mutable struct ModelPar
-#    #logistic Parameters
-#    r = 2.0
-#    K = 3
-#end
-
-##Playing around with setting up different equations
-#Start w/ simple logistic growth of R
-
-function logistic!(dR, R, p, t)
-    r, K = p
-    dR[1]= r*R[1]*(1-R[1]/K)
-end
-
-#Parameters
-r = 0.3
-
-K = 100.0
-R0 = 10.0
-tspan = (0.0, 100.0)
-
-#Solve the equation
-prob = ODEProblem(logistic!, [R0], tspan, (r,K))
-sol = solve(prob)
-
-population = [u[1] for u in sol.u]
-plot(sol.t, population, label = "R(t)", xlabel = "Time", ylabel = "Population", title = "Logistic Growth Model", lw = 2)
+#Set up paramters 
