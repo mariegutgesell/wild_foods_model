@@ -214,7 +214,8 @@ function model_2!(du, u, p ,t)
    du[4] = e * C2 * f_RC2 - P * num_C2P / denom_RCP - m * C2 
    du[5] = 0
 
-   #du[6] = (num_R1P + num_R2P) / denom_RCP + e * P * (num_C1P + num_C2P) / denom_RCP 
+   ##i think this is how i would calculate total harvest... just need to figure out how to calculate this - not part of ODE model but product from it .. 
+   #du[6] = P * (num_R1P + num_R2P) / denom_RCP + P * (num_C1P + num_C2P) / denom_RCP 
    return du
  end 
    
@@ -254,7 +255,7 @@ function model_2!(du, u, p ,t)
 ##stability metrics -- local and non-local 
 
 ##how to add in preference for subsidy
-##calculating total harvest -- essentially as sum of functional responses ... 
+##calculating total harvest -- essentially as sum of P*functional responses ... 
 ##reading and thinking about parameters and how to choose parameters, also different parameters per TL etc. 
 
  ##thinking about parameters, and then how to set up experiments to test applied questions 
