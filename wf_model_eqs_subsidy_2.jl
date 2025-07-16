@@ -214,7 +214,7 @@ end
       ##temporal variation in R parameters
    l1 = 0.1  #magnitude of variation in K of R1 
    l2 = 0.1  #magnitude of variation in K of R2
-   pf = 365.0 ##period of fluctuation 
+   pf = 10.0 ##period of fluctuation 
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
     e1::Function = t -> sin(2π / pf * t)
     e2::Function = t -> sin(2π / pf * (t - D *pf))
@@ -267,7 +267,7 @@ end
       ##temporal variation in R parameters
    l1 = 0.1  #magnitude of variation in K of R1 
    l2 = 0.1  #magnitude of variation in K of R2
-   pf = 365.0 ##period of fluctuation 
+   pf = 10.0 ##period of fluctuation 
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
     e1::Function = t -> sin(2π / pf * t)
     e2::Function = t -> sin(2π / pf * (t - D *pf))
@@ -394,9 +394,33 @@ function equilibrium_forced(p)
     mean_state = mean(sol_grid, dims = 2)
     range_state = maximum(sol_grid, dims = 2) - minimum(sol_grid, dims = 2)
     min_state = minimum(sol_grid, dims =2)
+
+    ##Calculate CV for one period of K
+    pf = p.pf
+    t_cv = range(t_eval - pf, t_eval, length = 1000)
+    sol_cv = sol(t_cv)
+
+    mean_cv = mean(sol_cv, dims = 2)
+    sd_cv = std(sol_cv, dims = 2)
+    cv = sd_cv ./ mean_cv
     
     ##want to add loop here so can calculate eigenvalue at each point t over whole period, and integrate to get total eigenvalue (see Bieg et al., 2023)
-    ##also want to calculate CV - of K period while in limit cycle
+   # Eigenvalue tracking over one period
+t_eig = range(t_eval - pf, t_eval, length = 500)
+λ_max_vals = zeros(length(t_eig))
+
+for (i, t) in enumerate(t_eig)
+    x = sol(t)
+    J = ForwardDiff.jacobian(x -> rhs_forced(x, p, t), x)
+    λ_max_vals[i] = maximum(real.(eigvals(J)))
+end
+
+# Integrate λ_max over the period (e.g., trapezoidal rule)
+dt = step(t_eig)
+λ_integrated = sum(λ_max_vals[2:end-1]) * dt + 0.5 * dt * (λ_max_vals[1] + λ_max_vals[end])
+
+
+
     ##Calculate jacobian at final state
     x_eval = sol(t_eval) ##extract solution at time = 500, when want to evaluate system
     J = ForwardDiff.jacobian(x -> rhs_forced(x, p, t_eval), x_eval)
@@ -409,8 +433,10 @@ function equilibrium_forced(p)
     return( mean_state = vec(mean_state),
         amplitude = vec(range_state),
         min = vec(min_state),
+        cv = vec(cv),
         λ1 = λ1,
         λ1_imag = λ1_imag,
+         λ_integrated = λ_integrated,
         react = react,
         sol = sol)
 end 
