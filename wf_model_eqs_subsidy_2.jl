@@ -14,6 +14,7 @@ using LinearAlgebra
 using NLsolve
 using DataFrames
 using Interact
+using Statistics
 
 ##Re-creating model from McCann et al., 2005, Ecology Letters and adding in preference for external subsidy to P 
 #u = state variables where u[1] = R1, u[2] = R2, u[3] = C1, u[4] = C2, u[5] = P
@@ -395,6 +396,7 @@ function equilibrium_forced(p)
     min_state = minimum(sol_grid, dims =2)
     
     ##want to add loop here so can calculate eigenvalue at each point t over whole period, and integrate to get total eigenvalue (see Bieg et al., 2023)
+    ##also want to calculate CV - of K period while in limit cycle
     ##Calculate jacobian at final state
     x_eval = sol(t_eval) ##extract solution at time = 500, when want to evaluate system
     J = ForwardDiff.jacobian(x -> rhs_forced(x, p, t_eval), x_eval)
@@ -462,10 +464,10 @@ end
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
 ##set initial condition
-u0 = [0.6, 0.8, 0.45, 0.65, 0.2]
+u0 = [1.5, 1.5, 1.0, 1.0, 0.5]
 tspan = (0.0, 500.0)
 ##set Parameters
-p = ModelPar_passive(w = 0.25, o = 0.5, H= 0.0)
+p = ModelPar_passive(w = 0.2, o = 0.0, H = 0.0, K = 10.0)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)

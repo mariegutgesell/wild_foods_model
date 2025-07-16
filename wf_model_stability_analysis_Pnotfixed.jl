@@ -8,6 +8,47 @@ include("wf_model_eqs_subsidy_2.jl") ##model equations with P constant/or not (d
 
 
 ##1) Looking at local stability for unforced model to see changes w/ increasing K
+p = ModelPar_passive(w = 0.2, o = 0.0, H = 0.0)
+
+K_results = equilibrium_forced(p)
+
+results_K_all = []
+for K in 0.1:0.1:10.0
+    p = ModelPar_passive(w = 0.2, o = 0.0, H = 0.0, K=K)
+    eq_data = equilibrium_forced(p)
+    push!(results_K_all, (; K=K, eq_data...))
+end
+df_eq = DataFrame(results_K_all)
+
+plot(df_eq.K, df_eq.λ1)
+
+R1_amp = [row.amplitude[1] for row in eachrow(df_eq)]
+R2_amp = [row.amplitude[2] for row in eachrow(df_eq)]
+C1_amp = [row.amplitude[3] for row in eachrow(df_eq)]
+C2_amp = [row.amplitude[4] for row in eachrow(df_eq)]
+P_amp = [row.amplitude[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.K, R1_amp)
+plot(df_eq.K, R2_amp)
+plot(df_eq.K, C1_amp)
+plot(df_eq.K, C2_amp)
+plot(df_eq.K, P_amp)
+
+
+R1_mean = [row.mean_state[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean_state[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean_state[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean_state[4] for row in eachrow(df_eq)]
+P_mean = [row.mean_state[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.K, R1_mean)
+plot(df_eq.K, R2_mean)
+plot(df_eq.K, C1_mean)
+plot(df_eq.K, C2_mean)
+plot(df_eq.K, P_mean)
+
 ##calculate local stability (max eigenvalue across values of K)
 results_K = []
 
