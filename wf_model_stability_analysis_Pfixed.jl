@@ -55,17 +55,11 @@ plot(df_eq.K, P_mean)
 ##time to dig into the dynamics ... 
 
 
-##the coupling plot does not look like how i would expect, why max stability at relatively strong coupling? is this related to subsidy? 
-##why does omnivory always destabilize at low P values? 
-
-##with the parameters the same across both energy channels, with equal coupling, the P basically just has more access to resources, all acting like one pool 
-##essentially with this set up, all one pool ... just increasing productivity? 
 
 ##Calculate return time 
 
 
 ##Do over gradient of o and w 
-
 results_o_w_all = []
 for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
     p = ModelPar_active(w = w, o = o, H = 0.3, K=3, D = 0.0)

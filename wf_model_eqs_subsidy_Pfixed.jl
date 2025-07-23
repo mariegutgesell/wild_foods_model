@@ -25,11 +25,7 @@ using Statistics
 ##work through checks to make sure the math makes sense
 ##sensitivity analysis across parameter spaces  - does stability change as expected based on existing theory? 
 ##bifurcation analysis 
-
-##introducing abiotic asynchrony into resources 
 ##making model stochastic 
-##different parameters for r, K, a, e, m, h for different state variables 
-
 
 
 ##Habitat preference (coupling)
@@ -201,9 +197,10 @@ end
 
     ##Initial/constant value of groceries, so effectively instantly replenishes 
     G = 2.0
+    G_base = 2.0 ##need base for pulse perturbation experiment 
     ##Predator functional responses
     f_r1c1::Function = f_R1C1
-    f_r2c2::Function = f_R2C2
+    f_r2c2::Function = f_R2C2 
     f_r1p::Function = f_R1P
     f_r2p::Function = f_R2P
     f_c1p::Function = f_C1P
@@ -254,6 +251,7 @@ end
 
     ##Initial/constant value of groceries, so effectively instantly replenishes 
     G = 2.0
+    G_base = 2.0
     ##Predator functional responses
     f_r1c1::Function = f_R1C1
     f_r2c2::Function = f_R2C2
