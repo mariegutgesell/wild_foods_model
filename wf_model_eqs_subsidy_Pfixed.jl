@@ -359,6 +359,56 @@ function rhs_unforced(u, p, t=0.0)
     return du ##this returns the computed derivative (or result of model) stored in du 
 end
 
+##Note: next if using NLSolve need to do wrapper function - solving for equilibrium only in a subset of the state variables
+function wrapped_model_forced!(residuals, x, p, P_fixed)
+    R1, R2, C1, C2 = x
+    T = eltype(x)
+    P = convert(T, P_fixed)
+    u = T[R1, R2, C1, C2, P]  # use T[...] to create uniform type array
+
+    du = zeros(T,5)
+    model_forced!(du, u, p, 0.0)
+
+    residuals[1:4] .= du[1:4]
+    return residuals
+end
+##vector-returning version, to allow for jacobian calculation
+function wrapped_model_vec_forced(x, p, P_fixed)
+    T = eltype(x)
+    du = zeros(T, 4)
+    wrapped_model_forced!(du, x, p, P_fixed)
+    return du
+end
+
+##Note: next if using NLSolve need to do wrapper function 
+function wrapped_model_unforced!(residuals, x, p, P_fixed)
+    R1, R2, C1, C2 = x
+    T = eltype(x)
+    P = convert(T, P_fixed)
+    u = T[R1, R2, C1, C2, P]  # use T[...] to create uniform type array
+
+    du = zeros(T,5)
+    model_unforced!(du, u, p, 0.0)
+
+    residuals[1:4] .= du[1:4]
+    return residuals
+end
+##vector-returning version, to allow for jacobian calculation
+function wrapped_model_vec_unforced(x, p, P_fixed)
+    T = eltype(x)
+    du = zeros(T, 4)
+    wrapped_model_unforced!(du, x, p, P_fixed)
+    return du
+end
+
+#The wrapped functions (e.g., wrapped_model_unforced!) are only needed when using solvers like nlsolve that require:
+#   Equal-length input/output vectors (i.e., length(x) == length(f(x))).
+ #   A lower-dimensional system (in your case, solving only for [R1, R2, C1, C2] with P held constant).
+  #  Residual format rather than time-dependent ODEs.
+#In contrast, ODEProblem:
+ #   Solves full time-dependent systems over all state variables.
+  #  Accepts the full system (i.e., model_unforced!) and will handle all five state variables just fine.
+
 ##other functions for eigenvalue analysis - based on KC code
 """M is the community matrix, we can be calculated with `cmat(u, p)`"""
 λ1_stability(M) = maximum(real.(eigvals(M)))
@@ -377,7 +427,7 @@ Note: `\nu` is the what to input `ν` which looks a bit too much like `v` for my
 
 ##trying function to calculate equilibrium that i can then loop over for values of K etc. -using KC approaches
 function equilibrium_forced(p)
-    u0 = [1.5, 1.5, 1.0, 1.0, 0.5] ##initial condition
+    u0 = [1.5, 1.5, 1.0, 1.0, P_fixed] ##initial condition
     
     t_warmup = 300.0 ##run long enough to reach the limit cycle 
     t_eval = 500.0 ##window to evaluate system properties
@@ -419,8 +469,6 @@ end
 dt = step(t_eig)
 λ_integrated = sum(λ_max_vals[2:end-1]) * dt + 0.5 * dt * (λ_max_vals[1] + λ_max_vals[end])
 
-
-
     ##Calculate jacobian at final state
     x_eval = sol(t_eval) ##extract solution at time = 500, when want to evaluate system
     J = ForwardDiff.jacobian(x -> rhs_forced(x, p, t_eval), x_eval)
@@ -452,7 +500,7 @@ function equilibrium_unforced(p, t)
    
    #use ODE result as initial guess for equilibrium
     u_approx = sol(t) ##returns full vector of state variables at time t
-    eq = nlsolve((du, u) -> model_unforced!(du, u, deepcopy(p), 0.0), u_approx).zero
+    eq = nlsolve((du, u) -> wrapped_model_unforced!(du, u, deepcopy(p), u_approx[5]), u_approx[1:4]).zero
     cmat(u, p) = ForwardDiff.jacobian(x -> rhs_unforced(x, p), u)
 
     ##Compute the community matrix and stability metrics 
@@ -464,27 +512,6 @@ function equilibrium_unforced(p, t)
     return(eq = eq, λ1 = λ1, λ1_imag =λ1_imag, react = react)
 end 
 
-
-##Note: next if using NLSolve need to do wrapper function 
-#function wrapped_model!(residuals, x, p, P_fixed)
-#    R1, R2, C1, C2 = x
-#    T = eltype(x)
-#    P = convert(T, P_fixed)
-#    u = T[R1, R2, C1, C2, P]  # use T[...] to create uniform type array
-
-#    du = zeros(T,5)
-#    model_2!(du, u, p, 0.0)
-
-#    residuals[1:4] .= du[1:4]
-#    return residuals
-#end
-##vector-returning version, to allow for jacobian calculation
-#function wrapped_model_vec(x, p, P_fixed)
-#    T = eltype(x)
-#    du = zeros(T, 4)
-#    wrapped_model!(du, x, p, P_fixed)
-#    return du
-#end
 
 
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 

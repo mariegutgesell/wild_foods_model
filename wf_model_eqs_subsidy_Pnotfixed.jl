@@ -359,6 +359,7 @@ function rhs_unforced(u, p, t=0.0)
     return du ##this returns the computed derivative (or result of model) stored in du 
 end
 
+
 ##other functions for eigenvalue analysis - based on KC code
 """M is the community matrix, we can be calculated with `cmat(u, p)`"""
 λ1_stability(M) = maximum(real.(eigvals(M)))
@@ -452,8 +453,8 @@ function equilibrium_unforced(p, t)
    
    #use ODE result as initial guess for equilibrium
     u_approx = sol(t) ##returns full vector of state variables at time t
-    eq = nlsolve((du, u) -> model_unforced!(du, u, deepcopy(p), 0.0), u_approx).zero
-    cmat(u, p) = ForwardDiff.jacobian(x -> rhs_unforced(x, p), u)
+   eq = nlsolve((du, u) -> model_unforced!(du, u, deepcopy(p), 0.0), u_approx).zero
+ cmat(u, p) = ForwardDiff.jacobian(x -> rhs_unforced(x, p), u)
 
     ##Compute the community matrix and stability metrics 
     M = cmat(eq, p)
@@ -465,26 +466,6 @@ function equilibrium_unforced(p, t)
 end 
 
 
-##Note: next if using NLSolve need to do wrapper function 
-#function wrapped_model!(residuals, x, p, P_fixed)
-#    R1, R2, C1, C2 = x
-#    T = eltype(x)
-#    P = convert(T, P_fixed)
-#    u = T[R1, R2, C1, C2, P]  # use T[...] to create uniform type array
-
-#    du = zeros(T,5)
-#    model_2!(du, u, p, 0.0)
-
-#    residuals[1:4] .= du[1:4]
-#    return residuals
-#end
-##vector-returning version, to allow for jacobian calculation
-#function wrapped_model_vec(x, p, P_fixed)
-#    T = eltype(x)
-#    du = zeros(T, 4)
-#    wrapped_model!(du, x, p, P_fixed)
-#    return du
-#end
 
 
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
