@@ -460,18 +460,22 @@ t_eig = range(t_eval - pf, t_eval, length = 500)
 λ_max_vals = zeros(length(t_eig))
 
 for (i, t) in enumerate(t_eig)
-    x = sol(t)
-    J = ForwardDiff.jacobian(x -> rhs_forced(x, p, t), x)
+    x = sol(t)[1:4] ##exclude P from eigenvalue analysis, don't want it in the Jacobian
+    J = ForwardDiff.jacobian(x -> wrapped_model_vec_forced(x, p, t), x)
     λ_max_vals[i] = maximum(real.(eigvals(J)))
 end
+
+println("Min λₘₐₓ = ", minimum(λ_max_vals))
+println("Max λₘₐₓ = ", maximum(λ_max_vals))
+println("Mean λₘₐₓ = ", mean(λ_max_vals))
 
 # Integrate λ_max over the period (e.g., trapezoidal rule)
 dt = step(t_eig)
 λ_integrated = sum(λ_max_vals[2:end-1]) * dt + 0.5 * dt * (λ_max_vals[1] + λ_max_vals[end])
 
     ##Calculate jacobian at final state
-    x_eval = sol(t_eval) ##extract solution at time = 500, when want to evaluate system
-    J = ForwardDiff.jacobian(x -> rhs_forced(x, p, t_eval), x_eval)
+    x_eval = sol(t_eval)[1:4] ##extract solution at time = 500, when want to evaluate system
+    J = ForwardDiff.jacobian(x -> wrapped_model_vec_forced(x, p, t_eval), x_eval)
 
     #M = cmat(eq, p)
     λ1 = λ1_stability(J)
@@ -491,7 +495,7 @@ end
 
 
 function equilibrium_unforced(p, t)
-    u0 = [1.5, 1.5, 1.0, 1.0, 0.5] ##initial condition
+    u0 = [1.5, 1.5, 1.0, 1.0, P_fixed] ##initial condition
     tspan = (0.0, t)
     
     #simulate dynamics to approach equilibrium
@@ -501,7 +505,7 @@ function equilibrium_unforced(p, t)
    #use ODE result as initial guess for equilibrium
     u_approx = sol(t) ##returns full vector of state variables at time t
     eq = nlsolve((du, u) -> wrapped_model_unforced!(du, u, deepcopy(p), u_approx[5]), u_approx[1:4]).zero
-    cmat(u, p) = ForwardDiff.jacobian(x -> rhs_unforced(x, p), u)
+    cmat(u, p) = ForwardDiff.jacobian(x -> wrapped_model_vec_unforced(x, p, t), u)
 
     ##Compute the community matrix and stability metrics 
     M = cmat(eq, p)
@@ -560,9 +564,11 @@ plot!(times, fr_G, label = "G → P")
 
 ##Look at dynamics with active omnivory 
 ##set Parameters
-u0 = [0.6, 0.8, 0.45, 0.65, 0.2]
+P_fixed = 0.25
+u0 = [1.5, 1.5, 1.0, 1.0, P_fixed]
 tspan = (0.0, 500.0)
-p = ModelPar_active(w = 0.2, o = 0.2, H = 1.0)
+p = ModelPar_active(w = 0.5, o = 0.7, H = 0.3, K =5, pf = 10.0, D = 0.5)
+
 ##Define the ODE problem
 prob_2 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_2 = solve(prob_2)
