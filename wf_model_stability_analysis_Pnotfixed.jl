@@ -3,7 +3,7 @@
 ##source model 
 #include("wf_model_eqs_subsidy.jl")
 
-include("wf_model_eqs_subsidy_2.jl") ##model equations with P constant/or not (depending on which equation on model structure is silenced), unique parameters per trophic level, active and passive omnivory parameter structures
+include("wf_model_eqs_subsidy_Pnotfixed.jl") ##model equations with P constant/or not (depending on which equation on model structure is silenced), unique parameters per trophic level, active and passive omnivory parameter structures
 ##WHERE LEFT OFF (JULY 3): trying to understand if dynamics from simpler to more complex model match what i would expect based on theory - working through this
 
 
@@ -64,3 +64,31 @@ plot(df_eq.K, P_mean)
 ##Calculate return time 
 
 
+##Do over gradient of o and w 
+
+results_o_w_all = []
+for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
+    p = ModelPar_passive(w = w, o = o, H = 0.2, K=3)
+    eq_data = equilibrium_forced(p)
+    push!(results_o_w_all, (; w=w, o=o, eq_data...))
+end
+df_eq_o_w = DataFrame(results_o_w_all)
+
+# Get unique values
+o_vals = unique(df_eq_o_w.o)
+w_vals = unique(df_eq_o_w.w)
+
+# Sort them to be safe
+sort!(o_vals)
+sort!(w_vals)
+
+# Create matrix for λmax
+λ_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :λ_integrated][1] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, λ_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
