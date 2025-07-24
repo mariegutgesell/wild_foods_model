@@ -10,7 +10,7 @@ using DifferentialEquations, NLsolve
 
 
 # Entire analysis for one pulse simulation (1 system)
-function pulse_unit(par, P_fixed, p_length, p_strength) 
+function pulse_unit_forced(par, P_fixed, p_length, p_strength) 
     # Parameters   
     u0 = [1.0, 1.0, 1.5, 1.5, P_fixed]            #initial state of R1, R2, C1, C1 and Pfixed -- define P_fixed outside of function
     pulse_start = 200               ##time when pulse begins
@@ -46,41 +46,11 @@ function pulse_unit(par, P_fixed, p_length, p_strength)
     #callback to apply the pulse
     cb_pulse = DiscreteCallback(pulse_event, forcing_pulse!)
 
-    ##Special case: Adaptive omnivory (so this function runs when par.pref == adapt_pref)
-    # run
-    if par.pref == adapt_pref
-        # compute ω -- so this function computes w
-        # NB: This may often increases computation time as we may compute
-        # results for passive omnivory twice but the code is much easier to
-        # read. Here the time is not a major concern as it takes few minutes to
-        # run.
-        #create copy with fixed omnivory to find equilibrium
-        par_fix = deepcopy(par)
-        par_fix.pref = fixed_pref
-        
-        #solve system with fixed preference to find equilibrium state
-        prob_fix = ODEProblem(model!, u0, t_span, deepcopy(par_fix),
-            tstops = pulse_event_times)
-        sol_fix = solve(prob_fix, reltol = 1e-8, abstol = 1e-8, 
-            callback = cb_pulse)
-        # sol_fix(t_grid)[1] starts at t_start
-        
-        #use system state at t_start to find steady state (eq) via root finding
-        eq = nlsolve(
-            (du, u) -> model!(du, u, par_fix, 0.0), 
-            sol_fix(t_grid)[1]
-        ).zero
-        
-        #calculate w (adaptive omnivory preference) based on equilibrium C and R
-        ### Solving for ω we have `ω = Ω * C^* / (Ω * C^* + (1 - Ω) * R^*)`
-        ω = Ω * eq[2] / (Ω * eq[2] + (1 - Ω) * eq[1])
-        par.ω = ω
-    end
-    
+
     ##Simulate Pulse for a Given parameter set
     par_pulse = deepcopy(par)
-    par_pulse.K = p_strength * par.K_base  ##initial pulse value (will be reset via callback)
-    prob = ODEProblem(model!, u0, t_span, deepcopy(par), tstops = pulse_event_times)
+    par_pulse.G = p_strength * par.G_base  ##initial pulse value (will be reset via callback)
+    prob = ODEProblem(model_forced!, u0, t_span, deepcopy(par), tstops = pulse_event_times)
     sol = solve(prob, reltol = 1e-8, abstol = 1e-8, callback = cb_pulse)
     sol_grid = sol(t_grid)
     

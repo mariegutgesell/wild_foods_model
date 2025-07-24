@@ -422,6 +422,39 @@ Note: `\nu` is the what to input `ν` which looks a bit too much like `v` for my
 """
 ν_stability(M) = λ1_stability((M + M') / 2)
 
+# overshoot and oscillation range
+
+abs_sol(sol, t, eq) = abs.(sol(t) .- eq)
+
+function overshoot(sol, eq, spc, t_beg, t_end)
+    return quadgk(t -> abs_sol(sol, t, eq)[spc], t_beg, t_end)[1]
+end
+
+
+# Calculate max-min metric
+function min_max(sol, spc, t_beg, t_end, len = 100000)
+    return maximum(sol(range(t_beg, t_end, length = len))[spc, :]) - 
+    minimum(sol(range(t_beg, t_end, length = len))[spc, :])
+end
+
+# find first time equilibrium is hit
+function find_times_hit_equil_press(res)
+    eq = res[1, end], res[2, end], res[3, end]
+    times = zeros(3)
+    for spc in 1:3
+        for i in 20:length(res)
+            # cannot be too strict here otherwise the value of the 
+            # first ht time varies a lort which will have serious 
+            # impact on min and max (overshoot too) leading to major oscillations lenth of the ts must be high enough too.
+            if isapprox(res[spc, i], eq[spc], atol = 0.01)
+                times[spc] = res.t[i]
+                break
+            end
+        end
+    end
+    return times
+end
+
 
 ##trying function to calculate equilibrium that i can then loop over for values of K etc. -using KC approaches
 function equilibrium_forced(p)
