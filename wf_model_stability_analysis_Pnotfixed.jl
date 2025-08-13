@@ -14,7 +14,7 @@ K_results = equilibrium_forced(p)
 
 results_K_all = []
 for K in 0.1:0.1:10.0
-    p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0, K=K)
+    p = ModelPar_active(w = 0.2, o = 0.2, H = 0.2, K=K)
     eq_data = equilibrium_forced(p)
     push!(results_K_all, (; K=K, eq_data...))
 end
@@ -92,3 +92,5 @@ heatmap(o_vals, w_vals, λ_mat;
         title = "Max Real Eigenvalue (λmax)",
         colorbar_title = "λmax",
         c = :viridis)
+
+     

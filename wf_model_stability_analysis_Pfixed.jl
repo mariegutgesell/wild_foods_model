@@ -14,7 +14,7 @@ K_results = equilibrium_forced(p)
 
 results_K_all = []
 for K in 0.1:0.1:10.0
-    p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0, K=K)
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
     eq_data = equilibrium_forced(p)
     push!(results_K_all, (; K=K, eq_data...))
 end
@@ -29,10 +29,10 @@ C2_cv = [row.cv[4] for row in eachrow(df_eq)]
 P_cv = [row.cv[5] for row in eachrow(df_eq)]
 
 
-plot(df_eq.K, R1_cv)
-plot(df_eq.K, R2_cv)
-plot(df_eq.K, C1_cv)
-plot(df_eq.K, C2_cv)
+plot(df_eq.K, R1_cv, label = "R1")
+plot!(df_eq.K, R2_cv, col = "red", label = "R2")
+plot!(df_eq.K, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.K, C2_cv, col = "green", label = "C2")
 plot(df_eq.K, P_cv)
 
 
@@ -49,10 +49,21 @@ plot(df_eq.K, C1_mean)
 plot(df_eq.K, C2_mean)
 plot(df_eq.K, P_mean)
 
+##unforced model
+results_K_all_uf = []
+for K in 0.1:0.1:5.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
+    t = 100
+    eq_data = equilibrium_unforced(p, t)
+    push!(results_K_all_uf, (; K=K, eq_data...))
+end
+df_eq = DataFrame(results_K_all_uf)
 
-##come back to these observations below, and if still relevant, also develop bifurcation diagrams .. 
-##feeling slightly more confident about approach of calculating stability? 
-##time to dig into the dynamics ... 
+plot(df_eq.K, df_eq.λ1)
+
+
+
+ 
 
 
 
@@ -60,9 +71,42 @@ plot(df_eq.K, P_mean)
 
 
 ##Do over gradient of o and w 
+results_o_w_all_uf = []
+for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
+    p = ModelPar_active(w = w, o = o, H = 0.1, K=3, D = 0.0)
+    t = 100
+    P_fixed = 1.0
+    eq_data = equilibrium_unforced(p, t)
+    push!(results_o_w_all_uf, (; w=w, o=o, eq_data...))
+end
+df_eq_o_w = DataFrame(results_o_w_all_uf)
+
+# Get unique values
+o_vals = unique(df_eq_o_w.o)
+w_vals = unique(df_eq_o_w.w)
+
+# Sort them to be safe
+sort!(o_vals)
+sort!(w_vals)
+
+# Create matrix for λmax
+λ_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :λ1][1] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, λ_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
+
+
+##Do over gradient of o and w - with temporal forcomg
 results_o_w_all = []
 for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
-    p = ModelPar_active(w = w, o = o, H = 0.3, K=3, D = 0.0)
+    p = ModelPar_active(w = w, o = o, H = 0.1, K=3, D = 0.5)
+    t = 100
+    P_fixed = 0.25
     eq_data = equilibrium_forced(p)
     push!(results_o_w_all, (; w=w, o=o, eq_data...))
 end
@@ -87,7 +131,6 @@ heatmap(o_vals, w_vals, λ_mat;
         colorbar_title = "λmax",
         c = :viridis)
 
-
 ##cv matrix 
 C1_cv_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :cv][1][3] for w in w_vals, o in o_vals]
 
@@ -104,8 +147,35 @@ heatmap(o_vals, w_vals, C2_cv_mat;
         title = "C2-CV",
         colorbar_title = "cv",
         c = :viridis)
-##values look very negative, something odd going on in eigenvalue integration, debug
+
+##min value matrix 
+C1_min_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :min][1][3] for w in w_vals, o in o_vals]
+
+C2_min_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :min][1][4] for w in w_vals, o in o_vals]
+
+
+R1_min_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :min][1][1] for w in w_vals, o in o_vals]
+R2_min_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :min][1][2] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, C2_min_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "C2-min",
+        colorbar_title = "min",
+        c = :viridis)
+
+
+
+
+
 plot(df_eq_o_w.t_eig,df_eq_o_w.λ_max_vals, label="λₘₐₓ(t)", xlabel="Time", ylabel="Re(λₘₐₓ)")
+
+
+
+
+
+
 
 
 ##how does scale of r to pf influence things?
@@ -135,3 +205,125 @@ heatmap(r_vals, pf_vals, λ_mat;
         title = "Max Real Eigenvalue (λmax)",
         colorbar_title = "λmax",
         c = :viridis)
+
+
+ ##do over gradient of synchrony/asynchrony 
+p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0)
+P_fixed = 0.25
+D_results = equilibrium_forced(p)
+
+results_D_all = []
+for D in 0.0:0.1:1.0
+    p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0, D=D)
+    eq_data = equilibrium_forced(p)
+    push!(results_D_all, (; D=D, eq_data...))
+end
+df_eq = DataFrame(results_D_all)
+
+plot(df_eq.D, df_eq.λ_integrated)
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.D, R1_cv, label = "R1")
+plot!(df_eq.D, R2_cv, col = "red", label = "R2")
+plot!(df_eq.D, C1_cv, col = "green", label = "C1")
+plot!(df_eq.D, C2_cv, col = "purple", label = "C2")
+plot(df_eq.D, P_cv)
+
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_min = [row.min[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.D, R1_min, label = "R1")
+plot!(df_eq.D, R2_min, col = "red", label = "R2")
+plot!(df_eq.D, C1_min, col = "green", label = "C1")
+plot!(df_eq.D, C2_min, col = "purple", label = "C2")
+plot(df_eq.D, P_min)
+
+
+##what about just for w, and what parameter can i use to reduce any temporal forcing? - just make l1 and l2 0 
+P_fixed = 0.25
+
+results_w_all = []
+for w in 0.0:0.1:1.0
+    p = ModelPar_passive(w = w, o = 0.0, H = 0.0, l1 = 0.1, l2 = 0.1)
+    eq_data = equilibrium_forced(p)
+    push!(results_w_all, (; w=w, eq_data...))
+end
+df_eq = DataFrame(results_w_all)
+
+plot(df_eq.w, df_eq.λ_integrated)
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.w, R1_cv, label = "R1")
+plot!(df_eq.w, R2_cv, col = "red", label = "R2")
+plot!(df_eq.w, C1_cv, col = "green", label = "C1")
+plot!(df_eq.w, C2_cv, col = "purple", label = "C2")
+plot(df_eq.w, P_cv)
+
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_min = [row.min[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.w, R1_min, label = "R1")
+plot!(df_eq.w, R2_min, col = "red", label = "R2")
+plot!(df_eq.w, C1_min, col = "green", label = "C1")
+plot!(df_eq.w, C2_min, col = "purple", label = "C2")
+plot(df_eq.w, P_min)
+
+
+##what about just for o, and what parameter can i use to reduce any temporal forcing? - just make l1 and l2 0 
+P_fixed = 0.25
+
+results_o_all = []
+for o in 0.0:0.1:1.0
+    p = ModelPar_passive(w = 0.0, o = o, H = 0.0, l1 = 0.1, l2 = 0.1)
+    eq_data = equilibrium_forced(p)
+    push!(results_o_all, (; o=o, eq_data...))
+end
+df_eq = DataFrame(results_o_all)
+
+plot(df_eq.o, df_eq.λ_integrated)
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.o, R1_cv, label = "R1")
+plot!(df_eq.o, R2_cv, col = "red", label = "R2")
+plot!(df_eq.o, C1_cv, col = "green", label = "C1")
+plot!(df_eq.o, C2_cv, col = "purple", label = "C2")
+plot(df_eq.o, P_cv)
+
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_min = [row.min[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.o, R1_min, label = "R1")
+plot!(df_eq.o, R2_min, col = "red", label = "R2")
+plot!(df_eq.o, C1_min, col = "green", label = "C1")
+plot!(df_eq.o, C2_min, col = "purple", label = "C2")
+plot(df_eq.o, P_min)

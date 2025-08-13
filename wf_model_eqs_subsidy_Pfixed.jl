@@ -4,6 +4,7 @@
 
 #using Pkg
 #Pkg.add("Plots")
+#Pkg.add("QuadGK")
 ##Load Libraries needed (ODE for later)
 using Parameters: @with_kw, @unpack ##imports Parameters package that provides convenient macros for working with keyword arugemnts, parameter structs and unpacking variables 
 using DifferentialEquations
@@ -15,7 +16,7 @@ using NLsolve
 using DataFrames
 using Interact
 using Statistics
-
+using QuadGK: quadgk
 ##Re-creating model from McCann et al., 2005, Ecology Letters and adding in preference for external subsidy to P 
 #u = state variables where u[1] = R1, u[2] = R2, u[3] = C1, u[4] = C2, u[5] = P
 #p = Parameters
@@ -299,6 +300,7 @@ function model_forced!(du, u, p ,t)
    return du
  end 
 
+ ##can adjust model and do forced/unforced just by changing parameters l1 andl2, will simplify code so dont need to do all forced/unforced i think.... just set up equilibirum functions to do both, maybe have if statements 
 function model_unforced!(du, u, p ,t)
     @unpack r, K, aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G, e, mC, mP, H, l1, l2, e1, e2 = p
    R1, R2, C1, C2, P = u 
@@ -407,6 +409,22 @@ end
  #   Solves full time-dependent systems over all state variables.
   #  Accepts the full system (i.e., model_unforced!) and will handle all five state variables just fine.
 
+function find_eq_forced(u, p)
+    x0 = u[1:4]
+    P_fixed = u[5]
+
+    result = nlsolve((du, x) -> wrapped_model_forced!(du, x, deepcopy(p), P_fixed), x0)
+
+    if result.f_converged
+        return vcat(result.zero, P_fixed)
+    else
+        error("Equilibrium solver did not converge.")
+    end
+end
+
+
+cmat_forced(u4, p, Pstar) = ForwardDiff.jacobian(x -> wrapped_model_vec_forced(x, p, Pstar), u4)
+
 ##other functions for eigenvalue analysis - based on KC code
 """M is the community matrix, we can be calculated with `cmat(u, p)`"""
 λ1_stability(M) = maximum(real.(eigvals(M)))
@@ -439,9 +457,9 @@ end
 
 # find first time equilibrium is hit
 function find_times_hit_equil_press(res)
-    eq = res[1, end], res[2, end], res[3, end]
-    times = zeros(3)
-    for spc in 1:3
+    eq = res[1, end], res[2, end], res[3, end], res[4, end]
+    times = zeros(4)
+    for spc in 1:4
         for i in 20:length(res)
             # cannot be too strict here otherwise the value of the 
             # first ht time varies a lort which will have serious 
@@ -535,8 +553,9 @@ function equilibrium_unforced(p, t)
    
    #use ODE result as initial guess for equilibrium
     u_approx = sol(t) ##returns full vector of state variables at time t
-    eq = nlsolve((du, u) -> wrapped_model_unforced!(du, u, deepcopy(p), u_approx[5]), u_approx[1:4]).zero
-    cmat(u, p) = ForwardDiff.jacobian(x -> wrapped_model_vec_unforced(x, p, t), u)
+    Pstar = u_approx[5]
+    eq = nlsolve((du, u) -> wrapped_model_unforced!(du, u, deepcopy(p), Pstar), u_approx[1:4]).zero
+    cmat(u, p) = ForwardDiff.jacobian(x -> wrapped_model_vec_unforced(x, p, Pstar), u)
 
     ##Compute the community matrix and stability metrics 
     M = cmat(eq, p)
@@ -552,10 +571,10 @@ end
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
 ##set initial condition
-u0 = [1.5, 1.5, 1.0, 1.0, 0.5]
+u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 tspan = (0.0, 500.0)
 ##set Parameters
-p = ModelPar_passive(w = 0.2, o = 0.0, H = 0.0, K = 10.0)
+p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0, D = 0.5)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
@@ -595,10 +614,10 @@ plot!(times, fr_G, label = "G → P")
 
 ##Look at dynamics with active omnivory 
 ##set Parameters
-P_fixed = 0.25
+P_fixed = 1.0
 u0 = [1.5, 1.5, 1.0, 1.0, P_fixed]
 tspan = (0.0, 500.0)
-p = ModelPar_active(w = 0.5, o = 0.7, H = 0.3, K =5, pf = 10.0, D = 0.5)
+p = ModelPar_active(w = 0.1, o = 0.1, H = 0.1, K =3, pf = 10.0, D = 0.5)
 
 ##Define the ODE problem
 prob_2 = ODEProblem(rhs_forced, u0, tspan, p)
@@ -606,6 +625,13 @@ sol_2 = solve(prob_2)
 
 ##plot timeseries
 plot(sol_2, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
+  
+##unforced
+prob_3 = ODEProblem(rhs_unforced, u0, tspan, p)
+sol_3 = solve(prob_3)
+
+##plot timeseries
+plot(sol_3, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
   
 ##Look at predator consumption  
 fr_vals_2 = [total_FR_into_P(u, p, t) for (u, t) in zip(sol_2.u, sol_2.t)]
