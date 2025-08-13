@@ -62,6 +62,8 @@ end
 ##Grocery Preference -- also density dependent, and H measures speed of switching 
 function sub_pref_func(u, p ,t)
     R1, R2, C1, C2, P = u 
+    G = p.G_func(t)
+
     return(p.H * p.G) / (p.H * p.G + (1-p.H)*R1 + (1-p.H)*R2 + (1-p.H) * C1 + (1-p.H)*C2)
 end
 ##is this the right way to have the denominator?  i think so yes
@@ -69,18 +71,19 @@ end
 
 ##functional responses between resources and consumer 
 function f_R1C1(u, p, t)
-    @unpack aR_C, hR_C, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_C, hR_C = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     ##H is preference for groceries  -holding constant 
     R1, R2, C1, C2, P = u  ##defines state variables, G = groceries
-    
+    G = p.G_func(t)
     return aR_C * R1 / (1 + aR_C * hR_C * R1)
 end
 
 function f_R2C2(u, p, t)
-    @unpack aR_C, hR_C, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_C, hR_C = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     ##H is preference for groceries  -holding constant 
     R1, R2, C1, C2, P = u  ##defines state variables, G = groceries
-    
+    G = p.G_func(t)
+
     return aR_C * R2 / (1 + aR_C * hR_C * R2)
 end
 
@@ -88,13 +91,14 @@ end
 
 ##functional response between resources and predator 
 function f_R1P(u, p, t)
-    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     ##H is preference for groceries  -holding constant 
     R1, R2, C1, C2, P = u  ##defines state variables, G = groceries
     W1 = p.W(u, p, t) ##function that defines habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
     o2 = p.d_om_j(u, p, t) ##function that defines degree of omnivory in patch 2 
     H1 = p.sub_pref(u, p, t)
+    G = p.G_func(t)
     
     numerator = (1-H1) * W1 * aR_P * o1 * R1
     denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
@@ -102,12 +106,13 @@ function f_R1P(u, p, t)
 end
 
 function f_R2P(u, p, t)
-    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P= p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
     o2 = p.d_om_j(u, p, t) ##function that defines degree of omnivory in patch 2 
     H1 = p.sub_pref(u, p, t)
+    G = p.G_func(t)
 
     numerator = (1-H1) * (1 - W1) * aR_P * o2 * R2
     denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
@@ -115,12 +120,13 @@ function f_R2P(u, p, t)
 end
 
 function f_C1P(u, p, t)
-    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
     o2 = p.d_om_j(u, p, t) ##function that defines degree of omnivory in patch 2 
     H1 = p.sub_pref(u, p, t)
+    G = p.G_func(t)
 
     numerator = (1-H1) * W1 * aC_P * (1 - o1) * C1
      denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
@@ -128,12 +134,13 @@ function f_C1P(u, p, t)
 end
 
 function f_C2P(u, p, t)
-    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
     o2 = p.d_om_j(u, p, t) ##function that defines degree of omnivory in patch 2 
     H1 = p.sub_pref(u, p, t)
+    G = p.G_func(t)
 
     numerator = (1-H1) * (1 - W1) * aC_P * (1 - o2) * C2
     denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
@@ -142,12 +149,13 @@ end
 
 ##trying out functional resposne for G.. type 2 functional response 
 function f_GP(u, p, t)
-    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR_P, aC_P,aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
     o2 = p.d_om_j(u, p, t) ##function that defines degree of omnivory in patch 2 
     H1 = p.sub_pref(u, p, t)
+    G = p.G_func(t)
 
     numerator = H1 * aG_P * G #trying if i remove scaling / suppression of G by other foraging preferences, i think this makes biological sense (but keep 1-H1 in other FRs)
    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
@@ -157,10 +165,14 @@ end
 
 ##linear (type 1) functional response 
 function f_GP_2(u, p, t)
-    @unpack a, h, H, G = p 
+    @unpack a, h, H = p 
     R1, R2, C1, C2 = u 
+    G = p.G_func(t)
     return G * H
 end
+
+##set function so before pulse G = G_pre, and during pulse is G_pulse 
+G_func(t) = (t < t_pulse || t ≥ t_recover) ? G_pre : G_pulse
 
 
 
@@ -198,7 +210,8 @@ end
 
     ##Initial/constant value of groceries, so effectively instantly replenishes 
     G = 2.0
-    G_base = 2.0 ##need base for pulse perturbation experiment 
+    G_base = 2.0 ##need base for pulse perturbation experiment
+   
     ##Predator functional responses
     f_r1c1::Function = f_R1C1
     f_r2c2::Function = f_R2C2 
@@ -216,6 +229,10 @@ end
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
     e1::Function = t -> sin(2π / pf * t)
     e2::Function = t -> sin(2π / pf * (t - D *pf))
+
+    ##time varying function of G
+     G_func::Function = t -> 1.0
+
 end
 
 #Set up paramters - starting with just looking at effect of coupling, no subsidy and no omnivory
@@ -253,6 +270,8 @@ end
     ##Initial/constant value of groceries, so effectively instantly replenishes 
     G = 2.0
     G_base = 2.0
+
+
     ##Predator functional responses
     f_r1c1::Function = f_R1C1
     f_r2c2::Function = f_R2C2
@@ -270,12 +289,16 @@ end
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
     e1::Function = t -> sin(2π / pf * t)
     e2::Function = t -> sin(2π / pf * (t - D *pf))
+
+    ##time varying function of G
+     G_func::Function = t -> 1.0
 end
 
 ##Model 
 function model_forced!(du, u, p ,t)
-    @unpack r, K, aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G, e, mC, mP, H, l1, l2, e1, e2 = p
+    @unpack r, K, aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, e, mC, mP, H, l1, l2, e1, e2 = p
    R1, R2, C1, C2, P = u 
+   G = p.G_func(t)
  
    ##predator functional responses
    f_r1p = p.f_r1p(u, p, t)
@@ -304,6 +327,7 @@ function model_forced!(du, u, p ,t)
 function model_unforced!(du, u, p ,t)
     @unpack r, K, aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G, e, mC, mP, H, l1, l2, e1, e2 = p
    R1, R2, C1, C2, P = u 
+     G = p.G_func(t)
  
    ##predator functional responses
    f_r1p = p.f_r1p(u, p, t)
@@ -331,8 +355,9 @@ function model_unforced!(du, u, p ,t)
 
 ##function to calculate total harvest for P, by summing functional response for P at each time step
 function total_FR_into_P(u, p ,t)
-    @unpack r, K, aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, G, e, mC, mP, H = p
+    @unpack r, K, aR_P, aC_P,aG_P, hR_P, hC_P, hG_P, e, mC, mP, H = p
    R1, R2, C1, C2, P = u 
+   G = p.G_func(t)
    ##predator functional responses
    f_r1p = p.f_r1p(u, p, t)
    f_r2p = p.f_r2p(u, p, t)
@@ -572,12 +597,18 @@ end
 ##Solve ODE 
 ##set initial condition
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-tspan = (0.0, 500.0)
+u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
+tspan = (0.0, 1000.0)
+G_pre = 2.0 
+G_pulse = 0.25*G_pre
+t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
+t_recover = 550.0 ##time when decline in resources ends 
+ 
 ##set Parameters
-p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0, D = 0.5)
+p = ModelPar_passive(w = 0.0, o = 0.0, H = 0.5, D = 0.5, G_func = G_func)
 
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
 ##plot timeseries
