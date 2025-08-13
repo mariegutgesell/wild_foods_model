@@ -596,8 +596,8 @@ end
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
 ##set initial condition
-u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
+u0 = [1.5, 1.5, 0.3, 0.3, 0.25]
+#u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 tspan = (0.0, 1000.0)
 G_pre = 2.0 
 G_pulse = 0.25*G_pre
@@ -605,7 +605,7 @@ t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilib
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_passive(w = 0.0, o = 0.0, H = 0.5, D = 0.5, G_func = G_func)
+p = ModelPar_passive(w = 1.0, o = 0.0, H = 0.5, D = 0.5, G_func = G_func, r = 3.0)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
@@ -635,7 +635,8 @@ times = sol_1.t
 
    ##plot total P consumption 
 plot(times, fr_total, label = "total → P", xlabel = "Time", ylabel = "Predator Consumption")  
-plot!(times, fr_R1, label = "R1 → P")
+plot!(times, fr_R1, label = "R1
+ → P")
 plot!(times, fr_R2, label = "R2 → P")
 plot!(times, fr_C1, label = "C1 → P")
 plot!(times, fr_C2, label = "C2 → P")
