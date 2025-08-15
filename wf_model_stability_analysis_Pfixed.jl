@@ -15,18 +15,20 @@ K_results = equilibrium_forced(p)
 results_K_all = []
 for K in 0.1:0.1:10.0
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
-    eq_data = equilibrium_forced(p)
+    t = 100S
+    eq_data = equilibrium_unforced(p, t)
     push!(results_K_all, (; K=K, eq_data...))
 end
 df_eq = DataFrame(results_K_all)
 
 plot(df_eq.K, df_eq.λ_integrated)
 
-R1_cv = [row.cv[1] for row in eachrow(df_eq)]
-R2_cv = [row.cv[2] for row in eachrow(df_eq)]
-C1_cv = [row.cv[3] for row in eachrow(df_eq)]
-C2_cv = [row.cv[4] for row in eachrow(df_eq)]
-P_cv = [row.cv[5] for row in eachrow(df_eq)]
+R1_cv = [row.min[1] for row in eachrow(df_eq)]
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R2_cv = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.min[5] for row in eachrow(df_eq)]
 
 
 plot(df_eq.K, R1_cv, label = "R1")
@@ -61,10 +63,116 @@ df_eq = DataFrame(results_K_all_uf)
 
 plot(df_eq.K, df_eq.λ1)
 
+##how does a influence?
+results_a_all = []
+for aR_P in 0.0:0.1:10.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, aR_P=aR_P)
+    eq_data = equilibrium_forced(p)
+    push!(results_a_all, (; aR_P=aR_P, eq_data...))
+end
+df_eq = DataFrame(results_a_all)
 
+plot(df_eq.aR_P, df_eq.λ1)
 
+##how does e influence?
+results_e_all = []
+for e in 0.1:0.1:10.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, e=e)
+    eq_data = equilibrium_forced(p)
+    push!(results_e_all, (; e=e, eq_data...))
+end
+df_eq = DataFrame(results_e_all)
+
+plot(df_eq.e, df_eq.λ_integrated)
+
+##how does r influence?
+results_r_all = []
+for r in 0.1:0.1:10.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, r=r)
+    eq_data = equilibrium_forced(p)
+    push!(results_r_all, (; r=r, eq_data...))
+end
+df_eq = DataFrame(results_r_all)
+
+plot(df_eq.r, df_eq.λ_integrated)
+
+##how does h influence?
+results_h_all = []
+for hR_P in 0.0:0.1:10.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, hR_P=hR_P)
+    eq_data = equilibrium_forced(p)
+    push!(results_h_all, (; hR_P=hR_P, eq_data...))
+end
+df_eq = DataFrame(results_h_all)
+
+plot(df_eq.hR_P, df_eq.λ_integrated)
+
+##how does m influence?
+results_m_all = []
+for mC in 0.1:0.1:1.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, mC=mC)
+    eq_data = equilibrium_forced(p)
+    push!(results_m_all, (; mC=mC, eq_data...))
+end
+df_eq = DataFrame(results_m_all)
+##high mortality rates cause errors/NAs in jacobian matrix b/c dividing by 0, so no stable solution 
+plot(df_eq.mC, df_eq.λ_integrated)
+
+##how does o influence?
+results_o_all = []
+for o in 0.1:0.1:1.0
+    p = ModelPar_active(w = 0.2, o = o, H = 0.1)
+    eq_data = equilibrium_forced(p)
+    push!(results_o_all, (; o=o, eq_data...))
+end
+df_eq = DataFrame(results_o_all)
+
+plot(df_eq.o, df_eq.λ_integrated)
+
+##how does w influence?
+results_w_all = []
+for w in 0.1:0.1:1.0
+    p = ModelPar_active(w = w, o = 0.1, H = 0.1)
+    eq_data = equilibrium_forced(p)
+    push!(results_w_all, (; w=w, eq_data...))
+end
+df_eq = DataFrame(results_w_all)
+
+plot(df_eq.w, df_eq.λ_integrated)
+
+##how does H influence?
+results_H_all = []
+for H in 0.1:0.1:1.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = H)
+    eq_data = equilibrium_forced(p)
+    push!(results_H_all, (; H=H, eq_data...))
+end
+df_eq = DataFrame(results_H_all)
+
+plot(df_eq.H, df_eq.λ_integrated)
+
+##how does G influence?
+results_G_all = []
+for G in 0.1:0.1:10.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G = G)
+    eq_data = equilibrium_forced(p)
+    push!(results_G_all, (; G=G, eq_data...))
+end
+df_eq = DataFrame(results_G_all)
+
+plot(df_eq.G, df_eq.λ_integrated)
  
 
+##how does D (synchrony) influence?
+results_D_all = []
+for D in 0.0:0.1:0.5
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, D = D)
+    eq_data = equilibrium_forced(p)
+    push!(results_D_all, (; D=D, eq_data...))
+end
+df_eq = DataFrame(results_D_all)
+
+plot(df_eq.D, df_eq.λ_integrated)
 
 
 ##Calculate return time 
@@ -104,7 +212,7 @@ heatmap(o_vals, w_vals, λ_mat;
 ##Do over gradient of o and w - with temporal forcomg
 results_o_w_all = []
 for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
-    p = ModelPar_active(w = w, o = o, H = 0.1, K=3, D = 0.5)
+    p = ModelPar_active(w = w, o = o, H = 0.9, K=3, D = 0.5, pf = 1.0)
     t = 100
     P_fixed = 0.25
     eq_data = equilibrium_forced(p)

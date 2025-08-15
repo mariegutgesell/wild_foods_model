@@ -184,19 +184,19 @@ G_func(t) = (t < t_pulse || t ≥ t_recover) ? G_pre : G_pulse
     H = 0.5 ##H = preference for groceries (G)
 
     ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level 
-    r = 2.0
-    K = 3.0
-    aR_C = 1.0  ##attack rate  of consumer on R
-    aR_P = 0.2 ##attack rate of P on R 
-    aC_P = 0.5  ##attack rate of P on C 
-    aG_P = 0.5  ##attack rate of P on G
-    e = 0.5   ##energy conversion 
-    mC = 0.4 ##C mortality rate
-    mP = 0.2   ## P mortality rate
-    hR_C = 0.4 ##handling time of C on R
-    hR_P = 0.6  ##handling time of P on R  
-    hC_P = 0.3 ##handling time of P on C
-    hG_P = 0.3 ##handling time of P on G
+    r = 1.0
+    K = 3.25
+    aR_C = 2.5  ##attack rate  of consumer on R
+    aR_P = 2.5 ##attack rate of P on R 
+    aC_P = 2.5  ##attack rate of P on C 
+    aG_P = 2.5  ##attack rate of P on G
+    e = 0.8   ##energy conversion 
+    mC = 1.0 ##C mortality rate
+    mP = 1.0   ## P mortality rate
+    hR_C = 0.5 ##handling time of C on R
+    hR_P = 0.5  ##handling time of P on R  
+    hC_P = 0.5 ##handling time of P on C
+    hG_P = 0.5 ##handling time of P on G
 
     ##Density dependent habitat preference function (simplifying for now to remove foraging scale)
     W::Function = hab_pref
@@ -246,16 +246,16 @@ end
     r = 2.0
     K = 3.0
     aR_C = 1.0  ##attack rate  of consumer on R
-    aR_P = 0.2 ##attack rate of P on R 
-    aC_P = 0.5  ##attack rate of P on C 
-    aG_P = 0.5  ##attack rate of P on G
-    e = 0.5   ##energy conversion 
-    mC = 0.4 ##C mortality rate
-    mP = 0.2   ## P mortality rate
-    hR_C = 0.4 ##handling time of C on R
-    hR_P = 0.6  ##handling time of P on R  
-    hC_P = 0.3 ##handling time of P on C
-    hG_P = 0.3 ##handling time of P on G
+    aR_P = 1.0 ##attack rate of P on R 
+    aC_P = 1.0  ##attack rate of P on C 
+    aG_P = 1.0  ##attack rate of P on G
+    e = 0.6   ##energy conversion 
+    mC = 0.5 ##C mortality rate
+    mP = 0.5   ## P mortality rate
+    hR_C = 0.5 ##handling time of C on R
+    hR_P = 0.5  ##handling time of P on R  
+    hC_P = 0.5 ##handling time of P on C
+    hG_P = 0.5 ##handling time of P on G
 
     ##Density dependent habitat preference function (simplifying for now to remove foraging scale)
     W::Function = hab_pref
@@ -596,19 +596,19 @@ end
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
 ##set initial condition
-u0 = [1.5, 1.5, 0.3, 0.3, 0.25]
-#u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
+#u0 = [1.5, 1.5, 0.3, 0.3, 1.0]
+u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 tspan = (0.0, 1000.0)
 G_pre = 2.0 
-G_pulse = 0.25*G_pre
+G_pulse = G_pre
 t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_passive(w = 1.0, o = 0.0, H = 0.5, D = 0.5, G_func = G_func, r = 3.0)
+p = ModelPar_active(w = 0.5, o = 0.6, H = 0.5, D = 0.5, G_func = G_func, K = 7.7)
 
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
 ##plot timeseries
@@ -644,12 +644,14 @@ plot!(times, fr_G, label = "G → P")
 
 
 
+
+
 ##Look at dynamics with active omnivory 
 ##set Parameters
-P_fixed = 1.0
+P_fixed = 0.25
 u0 = [1.5, 1.5, 1.0, 1.0, P_fixed]
-tspan = (0.0, 500.0)
-p = ModelPar_active(w = 0.1, o = 0.1, H = 0.1, K =3, pf = 10.0, D = 0.5)
+tspan = (0.0, 100.0)
+p = ModelPar_active(w = 0.1, o = 0.1, H = 0.9, K =7.5, pf = 10.0, D = 0.5)
 
 ##Define the ODE problem
 prob_2 = ODEProblem(rhs_forced, u0, tspan, p)

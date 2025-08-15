@@ -472,9 +472,9 @@ end
 ##Solve ODE 
 ##set initial condition
 u0 = [1.5, 1.5, 1.0, 1.0, 0.5]
-tspan = (0.0, 500.0)
+tspan = (0.0, 1000.0)
 ##set Parameters
-p = ModelPar_passive(w = 0.2, o = 0.0, H = 0.0, K = 10.0)
+p = ModelPar_passive(w = 0.2, o = 0.3, H = 0.0, K = 3.0)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
