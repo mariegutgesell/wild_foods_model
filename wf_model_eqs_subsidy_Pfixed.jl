@@ -528,7 +528,7 @@ function equilibrium_forced(p)
     min_state = minimum(sol_grid, dims =2)
     max_state = maximum(sol_grid, dims = 2)
 
-    ##Calculate CV for one period of K
+    ##Calculate CV for one period of K -- might want to do this over a longer window ..
     pf = p.pf
     t_cv = range(t_eval - pf, t_eval, length = 1000)
     sol_cv = sol(t_cv)
@@ -578,25 +578,69 @@ dt = step(t_eig)
 end 
 
 
-function equilibrium_unforced(p, t)
+function equilibrium_unforced(p)
     u0 = [1.5, 1.5, 1.0, 1.0, P_fixed] ##initial condition
-    tspan = (0.0, t)
+    t_warmup = 2900.0 ##run long enough to reach the equilibrium/limit cycle 
+    t_eval = 3000.0 ##window to evaluate system properties
+    #tspan = (0.0, t_eval)
+    #t_grid = range(t_warmup, t_eval, length = 1000) ##extract dynamics after settling 
+
+Δt = (t_eval - t_warmup) / 999           # 1000 samples
+
+
+
+prob = ODEProblem(model_unforced!, u0, (0.0, t_eval), deepcopy(p))
+sol  = solve(prob, Tsit5(); reltol=1e-8, abstol=1e-8,
+           saveat=t_warmup:Δt:t_eval, save_everystep=false, dense=false,
+            save_idxs=1:5)              # only save the states you need
+
     
-    #simulate dynamics to approach equilibrium
-    prob = ODEProblem(model_unforced!, u0, tspan, deepcopy(p)) ##only need to use deepcopy if you are changing parameters inside the function
-    sol = solve(prob, reltol = 1e-8, abstol = 1e-8)
+function robust_stats(U; clip_negatives=true, tol_abs=1e-12, tol_rel=1e-6, cv_for_absent=NaN)
+    U2 = clip_negatives ? max.(U, 0.0) : U            # states×times
+    μ  = dropdims(mean(U2; dims=2), dims=2)
+    σ  = dropdims(std(U2;  dims=2), dims=2)
+    occ = dropdims(maximum(U2; dims=2), dims=2)
+    min = dropdims(minimum(U2; dims=2), dims=2)
+    cv = similar(μ)
+    for i in eachindex(μ)
+        tol = max(tol_abs, tol_rel * occ[i])          # relative+absolute floor
+        if occ[i] ≤ tol || abs(μ[i]) ≤ tol            # effectively extinct/zero
+            cv[i] = cv_for_absent                     # NaN or 0.0
+        else
+            cv[i] = σ[i] / μ[i]
+        end
+    end
+    return (mean=μ, sd=σ, max=occ, cv=cv, min = min)
+end
+U = Array(sol)
+stats = robust_stats(U; clip_negatives=true, cv_for_absent=NaN)
+
+mean_state = stats.mean
+sd_state   = stats.sd
+min_state = stats.min
+max_state  = stats.max
+cv         = stats.cv
+
+    #extract solutions over limit cycle 
+   # prob = ODEProblem(model_unforced!, u0, tspan, deepcopy(p)) ##only need to use deepcopy if you are changing parameters inside the function
+   # sol = solve(prob, reltol = 1e-8, abstol = 1e-8)
+   # sol_grid = sol(t_grid, idxs=1:5)
+    
+    ##Calculate mean state metrics over the limit cycle 
+   # mean_state = mean(U; dims=2)
+   # range_state = maximum(U, dims = 2) - minimum(U, dims = 2)
+   # min_state = minimum(U, dims =2)
+   # max_state = maximum(U, dims = 2)
+   # sd_state = std(U, dims = 2)
+   # cv = sd_state ./ mean_state
+
    
    #use ODE result as initial guess for equilibrium
-    u_approx = sol(t) ##returns full vector of state variables at time t
+    u_approx = sol(t_eval) ##returns full vector of state variables at time t
     Pstar = u_approx[5]
     eq = nlsolve((du, u) -> wrapped_model_unforced!(du, u, deepcopy(p), Pstar), u_approx[1:4]).zero
     cmat(u, p) = ForwardDiff.jacobian(x -> wrapped_model_vec_unforced(x, p, Pstar), u)
 
-    ##Compute the community matrix and stability metrics 
-   # M = cmat(eq, p)
-   # λ1 = λ1_stability(M)
-   # λ1_imag = λ1_stability_imag(M)
-   # react = ν_stability(M)
 
 ##trying to see if can keep function running and see where getting inf/NAs in matrix
     # safe eigenvalue calculation
@@ -636,9 +680,12 @@ function equilibrium_unforced(p, t)
         NaN
     end
 
-    return(eq = eq, λ1 = λ1, λ1_imag =λ1_imag, react = react)
+    return(eq = eq, λ1 = λ1, λ1_imag =λ1_imag, react = react, cv=cv, min = min_state, max = max_state,  mean = mean_state, sd = sd_state)
 end 
 
+##Next steps:
+
+##3) why is matrix throwing NAs for certain values when can solve with ODE? 
 
 
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
@@ -646,14 +693,14 @@ end
 ##set initial condition
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
-tspan = (0.0, 10000.0)
+tspan = (0.0, 5000.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G_func = G_func, K = 9.1)
+p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G_func = G_func, K = 1.5)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
@@ -664,7 +711,7 @@ sol_1 = solve(prob_1)
 ##plot timeseries
 plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
 
-plot(sol_1, tspan=(8000, 10000),
+plot(sol_1, tspan=(2000, 2500),
      xlabel="Time", ylabel="Population",
      title="ODE Solution - Active Omnivory")
 

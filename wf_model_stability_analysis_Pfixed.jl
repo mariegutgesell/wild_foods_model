@@ -12,15 +12,14 @@ p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0)
 P_fixed = 0.25
 K_results = equilibrium_forced(p)
 
-results_K_all = []
+results_K_all_uf = []
 P_fixed = 0.25
-for K in 0.1:0.1:10.0
+for K in 0.1:0.5:6.3
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
-    t = 1000
-    eq_data = equilibrium_unforced(p, t)
-    push!(results_K_all, (; K=K, eq_data...))
+    eq_data = equilibrium_unforced(p)
+    push!(results_K_all_uf, (; K=K, eq_data...))
 end
-df_eq = DataFrame(results_K_all)
+df_eq = DataFrame(results_K_all_uf)
 ##in unforced model, getting inf/NAs when K = 7.3, 9.2, 8.9, 7.4 - when evaluating at t = 100
 ##in unforced model, getting inf/NAs when K = 0.1-0.7, 7.3, 8.0, 9.0 
 ##if getting different K values when evaluating at different time points, i think not at equilibrium at t = 100? 
@@ -40,49 +39,85 @@ df_eq = DataFrame(results_K_all)
 ##woah yea crazy shit going on -- longer wild cycles 
 ##at k = 7 start to not get repeating patterns 
 
-plot(df_eq.K, df_eq.λ1)
+plot(df_eq.K, df_eq.λ1, xlabel = "K", ylabel = "max eigenvalue")
+##why do the eigenvalues go crazy like that? - outside of numerical realm or something.. 
+
 
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
 R1_max = [row.max[1] for row in eachrow(df_eq)]
 R1_min = [row.min[1] for row in eachrow(df_eq)]
-R2_cv = [row.min[2] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
 R2_max = [row.max[2] for row in eachrow(df_eq)]
 R2_min = [row.min[2] for row in eachrow(df_eq)]
-C1_cv = [row.min[3] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
 C1_max = [row.max[3] for row in eachrow(df_eq)]
 C1_min = [row.min[3] for row in eachrow(df_eq)]
-C2_cv = [row.min[4] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
 C2_max = [row.max[4] for row in eachrow(df_eq)]
 C2_min = [row.min[4] for row in eachrow(df_eq)]
-P_cv = [row.min[5] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
 
 
-plot(df_eq.K, R1_cv, label = "R1")
+plot(df_eq.K, R1_cv, label = "R1", xlabel = "K", ylabel = "CV")
 plot!(df_eq.K, R2_cv, col = "red", label = "R2")
 plot!(df_eq.K, C1_cv, col = "blue", label = "C1")
 plot!(df_eq.K, C2_cv, col = "green", label = "C2")
 plot(df_eq.K, P_cv)
 
+##spike in C1/C2 CV odd, is before they cross 0, so what is driving that? 
 
-R1_mean = [row.mean_state[1] for row in eachrow(df_eq)]
-R2_mean = [row.mean_state[2] for row in eachrow(df_eq)]
-C1_mean = [row.mean_state[3] for row in eachrow(df_eq)]
-C2_mean = [row.mean_state[4] for row in eachrow(df_eq)]
-P_mean = [row.mean_state[5] for row in eachrow(df_eq)]
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
 
 
-plot(df_eq.K, R1_mean)
-plot(df_eq.K, R2_mean)
-plot(df_eq.K, C1_mean)
-plot(df_eq.K, C2_mean)
-plot(df_eq.K, P_mean)
+plot(df_eq.K, R1_mean, xlabel = "K", ylabel = "Mean")
+plot!(df_eq.K, R2_mean)
+plot!(df_eq.K, C1_mean)
+plot!(df_eq.K, C2_mean)
+plot!(df_eq.K, P_mean)
 
-##unforced model
-results_K_all_uf = []
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.K, R1_sd, xlabel = "K", ylabel = "SD")
+plot!(df_eq.K, R2_sd)
+plot!(df_eq.K, C1_sd)
+plot!(df_eq.K, C2_sd)
+plot(df_eq.K, P_sd)
+
+##so means go up, and SD goes up, so increase in mean i guess is driving decline in CV? 
+##Look at min/max Plots - bifurcations
+plot(df_eq.K, R1_min, label = "R1 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, R1_max, label = "R1 max")
+
+plot(df_eq.K, R2_min, col = "red", label = "R2 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.K, C1_min, col = "blue", label = "C1 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.K, C2_min, col = "green", label = "C2 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.K, P_cv)
+
+
+
+##forced model
+
+results_K_all_f = []
 for K in 0.1:0.1:5.0
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
     t = 100
-    eq_data = equilibrium_unforced(p, t)
+    eq_data = equilibrium_forced(p)
     push!(results_K_all_uf, (; K=K, eq_data...))
 end
 df_eq = DataFrame(results_K_all_uf)
