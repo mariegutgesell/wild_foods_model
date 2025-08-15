@@ -13,21 +13,47 @@ P_fixed = 0.25
 K_results = equilibrium_forced(p)
 
 results_K_all = []
+P_fixed = 0.25
 for K in 0.1:0.1:10.0
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
-    t = 100S
+    t = 1000
     eq_data = equilibrium_unforced(p, t)
     push!(results_K_all, (; K=K, eq_data...))
 end
 df_eq = DataFrame(results_K_all)
+##in unforced model, getting inf/NAs when K = 7.3, 9.2, 8.9, 7.4 - when evaluating at t = 100
+##in unforced model, getting inf/NAs when K = 0.1-0.7, 7.3, 8.0, 9.0 
+##if getting different K values when evaluating at different time points, i think not at equilibrium at t = 100? 
 
-plot(df_eq.K, df_eq.λ_integrated)
+##at k = 1.6, finally get persistence of C1 
+##at k = 2.0, get persistence of C2 as well -- and monotonic approaches to equilibrium
+##at k = 3.0 and 3.1 start to get tiny wiggles -- potentially still part of transient? could be really long .. 
+##when go over 100,000 time steps, still getting same pattern -- not stable limit cycles but does look potentially like it is repeating itself.. 
+##then at 3.2 wiggles seem to disappear again 
+##then 3.3 get tiny starts of potential oscillations, and slight oscillatory decay
+##that does make sense, because that is at bottom of checkmark when start to get imaginary part (i think)
+##but it isn't going to a straight stable equilibrium .. well R2 and C2 do, but R1 and C1 don't
+##looks like at about 3.9/4 thats when start to get some oscillation in R2/C2
+##at k = 5, getting stable limit cycles (i think) -- plot the max/mins after this to see if getting bifurcation 
+##at k-5.2 start to get much larger oscillations -- 
+##at 6.2 start to get different dynamics at later time periods, so definitely not in a stable oscillation -- 
+##woah yea crazy shit going on -- longer wild cycles 
+##at k = 7 start to not get repeating patterns 
 
-R1_cv = [row.min[1] for row in eachrow(df_eq)]
+plot(df_eq.K, df_eq.λ1)
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
 R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
 R2_cv = [row.min[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
 C1_cv = [row.min[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
 C2_cv = [row.min[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
 P_cv = [row.min[5] for row in eachrow(df_eq)]
 
 

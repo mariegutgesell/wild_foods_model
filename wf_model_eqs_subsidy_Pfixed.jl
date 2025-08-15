@@ -452,7 +452,15 @@ cmat_forced(u4, p, Pstar) = ForwardDiff.jacobian(x -> wrapped_model_vec_forced(x
 
 ##other functions for eigenvalue analysis - based on KC code
 """M is the community matrix, we can be calculated with `cmat(u, p)`"""
-λ1_stability(M) = maximum(real.(eigvals(M)))
+#λ1_stability(M) = maximum(real.(eigvals(M)))
+
+function λ1_stability(M)
+    if any(isnan.(M)) || any(isinf.(M))
+        return NaN
+    end
+    λs = eigvals(M)
+    return maximum(real.(λs))
+end
 
 """M is the community matrix, we can be calculated with `cmat(u, p)`"""
 function λ1_stability_imag(M) 
@@ -518,6 +526,7 @@ function equilibrium_forced(p)
     mean_state = mean(sol_grid, dims = 2)
     range_state = maximum(sol_grid, dims = 2) - minimum(sol_grid, dims = 2)
     min_state = minimum(sol_grid, dims =2)
+    max_state = maximum(sol_grid, dims = 2)
 
     ##Calculate CV for one period of K
     pf = p.pf
@@ -559,6 +568,7 @@ dt = step(t_eig)
     return( mean_state = vec(mean_state),
         amplitude = vec(range_state),
         min = vec(min_state),
+        max = vec(max_state),
         cv = vec(cv),
         λ1 = λ1,
         λ1_imag = λ1_imag,
@@ -583,10 +593,48 @@ function equilibrium_unforced(p, t)
     cmat(u, p) = ForwardDiff.jacobian(x -> wrapped_model_vec_unforced(x, p, Pstar), u)
 
     ##Compute the community matrix and stability metrics 
-    M = cmat(eq, p)
-    λ1 = λ1_stability(M)
-    λ1_imag = λ1_stability_imag(M)
-    react = ν_stability(M)
+   # M = cmat(eq, p)
+   # λ1 = λ1_stability(M)
+   # λ1_imag = λ1_stability_imag(M)
+   # react = ν_stability(M)
+
+##trying to see if can keep function running and see where getting inf/NAs in matrix
+    # safe eigenvalue calculation
+    λ1 = try
+        M = cmat(eq, p)
+        if any(!isfinite, M)
+            @warn "NaN/Inf in community matrix" p=p eq=eq
+            NaN
+        else
+            maximum(real.(eigvals(M)))
+        end
+    catch e
+        @warn "λ1 calculation failed" p=p eq=eq exception=(e, catch_backtrace())
+        NaN
+    end
+
+    λ1_imag = try
+        M = cmat(eq, p)
+        if any(!isfinite, M)
+            NaN
+        else
+            vals = eigvals(M)
+            imag(vals[argmax(real.(vals))])
+        end
+    catch
+        NaN
+    end
+
+    react = try
+        M = cmat(eq, p)
+        if any(!isfinite, M)
+            NaN
+        else
+            ν_stability(M)
+        end
+    catch
+        NaN
+    end
 
     return(eq = eq, λ1 = λ1, λ1_imag =λ1_imag, react = react)
 end 
@@ -596,25 +644,32 @@ end
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
 ##set initial condition
-#u0 = [1.5, 1.5, 0.3, 0.3, 1.0]
-u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
-tspan = (0.0, 1000.0)
+u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+#u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
+tspan = (0.0, 10000.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.5, o = 0.6, H = 0.5, D = 0.5, G_func = G_func, K = 7.7)
+p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G_func = G_func, K = 9.1)
 
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
-##plot timeseries
-plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Passive Omnivory")
+##also this ODE solver is working, why in function am i then getting NAs/Infs in matrix? 
 
-for (u, t) in zip(sol_1.u, sol_1.t)
+##plot timeseries
+plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
+
+plot(sol_1, tspan=(8000, 10000),
+     xlabel="Time", ylabel="Population",
+     title="ODE Solution - Active Omnivory")
+
+
+     for (u, t) in zip(sol_1.u, sol_1.t)
     W = hab_pref(u, p, t)
     o = om_i_pref_fixed(u, p, t)
     H = sub_pref_func(u, p, t)
