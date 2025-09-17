@@ -524,21 +524,15 @@ function equilibrium_forced(p)
     
     ##Calculate mean state metrics over the limit cycle 
     mean_state = mean(sol_grid, dims = 2)
+    sd_state = std(sol_grid, dims = 2; corrected = false)
     range_state = maximum(sol_grid, dims = 2) - minimum(sol_grid, dims = 2)
     min_state = minimum(sol_grid, dims =2)
     max_state = maximum(sol_grid, dims = 2)
-
-    ##Calculate CV for one period of K -- might want to do this over a longer window ..
-    pf = p.pf
-    t_cv = range(t_eval - pf, t_eval, length = 1000)
-    sol_cv = sol(t_cv)
-
-    mean_cv = mean(sol_cv, dims = 2)
-    sd_cv = std(sol_cv, dims = 2)
-    cv = sd_cv ./ mean_cv
-    
+    cv = sd_state ./mean_state
+   
     ##want to add loop here so can calculate eigenvalue at each point t over whole period, and integrate to get total eigenvalue (see Bieg et al., 2023)
    # Eigenvalue tracking over one period
+   pf = p.pf
 t_eig = range(t_eval - pf, t_eval, length = 500)
 λ_max_vals = zeros(length(t_eig))
 
@@ -565,7 +559,8 @@ dt = step(t_eig)
     λ1_imag = λ1_stability_imag(J)
     react = ν_stability(J)
 
-    return( mean_state = vec(mean_state),
+    return( mean = vec(mean_state),
+        sd = vec(sd_state),
         amplitude = vec(range_state),
         min = vec(min_state),
         max = vec(max_state),
