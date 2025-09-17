@@ -14,7 +14,7 @@ K_results = equilibrium_forced(p)
 
 results_K_all_uf = []
 P_fixed = 0.25
-for K in 0.1:0.5:6.3
+for K in 0.1:0.1:6.5
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
     eq_data = equilibrium_unforced(p)
     push!(results_K_all_uf, (; K=K, eq_data...))
@@ -114,22 +114,89 @@ plot(df_eq.K, P_cv)
 ##forced model
 
 results_K_all_f = []
-for K in 0.1:0.1:5.0
+for K in 0.1:0.1:8.0
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
-    t = 100
+  #  t = 100
     eq_data = equilibrium_forced(p)
-    push!(results_K_all_uf, (; K=K, eq_data...))
+    push!(results_K_all_f, (; K=K, eq_data...))
 end
-df_eq = DataFrame(results_K_all_uf)
+df_eq = DataFrame(results_K_all_f)
 
 plot(df_eq.K, df_eq.λ1)
 
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.K, R1_cv, label = "R1", xlabel = "K", ylabel = "CV")
+plot!(df_eq.K, R2_cv, col = "red", label = "R2")
+plot!(df_eq.K, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.K, C2_cv, col = "green", label = "C2")
+plot(df_eq.K, P_cv)
+
+##spike in C1/C2 CV odd, is before they cross 0, so what is driving that? 
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.K, R1_mean, xlabel = "K", ylabel = "Mean")
+plot!(df_eq.K, R2_mean)
+plot!(df_eq.K, C1_mean)
+plot!(df_eq.K, C2_mean)
+plot!(df_eq.K, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.K, R1_sd, xlabel = "K", ylabel = "SD")
+plot!(df_eq.K, R2_sd)
+plot!(df_eq.K, C1_sd)
+plot!(df_eq.K, C2_sd)
+plot(df_eq.K, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.K, R1_min, label = "R1 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, R1_max, label = "R1 max")
+
+plot(df_eq.K, R2_min, col = "red", label = "R2 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.K, C1_min, col = "blue", label = "C1 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.K, C2_min, col = "green", label = "C2 min", xlabel = "K", ylabel ="min/max")
+plot!(df_eq.K, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.K, P_cv)
+
+
+
+
 ##how does a influence?
 results_a_all = []
-for aR_P in 0.0:0.1:10.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, aR_P=aR_P)
+for aC_P in 0.0:0.1:10.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, aC_P=aC_P)
     eq_data = equilibrium_forced(p)
-    push!(results_a_all, (; aR_P=aR_P, eq_data...))
+    push!(results_a_all, (; aC_P=aC_P, eq_data...))
 end
 df_eq = DataFrame(results_a_all)
 

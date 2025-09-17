@@ -593,7 +593,7 @@ prob = ODEProblem(model_unforced!, u0, (0.0, t_eval), deepcopy(p))
 sol  = solve(prob, Tsit5(); reltol=1e-8, abstol=1e-8,
            saveat=t_warmup:Δt:t_eval, save_everystep=false, dense=false,
             save_idxs=1:5)              # only save the states you need
-
+##look up if function has an option for precision or number of digits used in the computation 
     
 function robust_stats(U; clip_negatives=true, tol_abs=1e-12, tol_rel=1e-6, cv_for_absent=NaN)
     U2 = clip_negatives ? max.(U, 0.0) : U            # states×times
@@ -693,17 +693,17 @@ end
 ##set initial condition
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
-tspan = (0.0, 5000.0)
+tspan = (0.0, 3000.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G_func = G_func, K = 1.5)
+p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G_func = G_func, K = 8.0)
 
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
 ##also this ODE solver is working, why in function am i then getting NAs/Infs in matrix? 
@@ -711,7 +711,7 @@ sol_1 = solve(prob_1)
 ##plot timeseries
 plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
 
-plot(sol_1, tspan=(2000, 2500),
+plot(sol_1, tspan=(0, 750),
      xlabel="Time", ylabel="Population",
      title="ODE Solution - Active Omnivory")
 
