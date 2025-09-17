@@ -249,7 +249,7 @@ end
     aR_P = 1.0 ##attack rate of P on R 
     aC_P = 1.0  ##attack rate of P on C 
     aG_P = 1.0  ##attack rate of P on G
-    e = 0.6   ##energy conversion 
+    e = 0.6   ##energy conversion -
     mC = 0.5 ##C mortality rate
     mP = 0.5   ## P mortality rate
     hR_C = 0.5 ##handling time of C on R
@@ -575,8 +575,8 @@ end
 
 function equilibrium_unforced(p)
     u0 = [1.5, 1.5, 1.0, 1.0, P_fixed] ##initial condition
-    t_warmup = 2900.0 ##run long enough to reach the equilibrium/limit cycle 
-    t_eval = 3000.0 ##window to evaluate system properties
+    t_warmup = 300.0 ##run long enough to reach the equilibrium/limit cycle 
+    t_eval = 500.0 ##window to evaluate system properties
     #tspan = (0.0, t_eval)
     #t_grid = range(t_warmup, t_eval, length = 1000) ##extract dynamics after settling 
 
@@ -695,7 +695,7 @@ t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilib
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G_func = G_func, K = 8.0)
+p = ModelPar_active(w = 0.2, o = 0.05, H = 0.1, G_func = G_func)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
@@ -706,7 +706,7 @@ sol_1 = solve(prob_1)
 ##plot timeseries
 plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
 
-plot(sol_1, tspan=(0, 750),
+plot(sol_1, tspan=(0, 500),
      xlabel="Time", ylabel="Population",
      title="ODE Solution - Active Omnivory")
 
