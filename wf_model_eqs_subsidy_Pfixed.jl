@@ -314,8 +314,10 @@ function model_forced!(du, u, p ,t)
   f_r2c2 = p.f_r2c2(u, p, t)
    
    ##ODEs
-   du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t) - 0.5))) - C1 * f_r1c1 - P * f_r1p
+   du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t) - 0.5))) - C1 * f_r1c1 - P * f_r1p ##subtracting 0.5 from e1 essentially increases mean K (Kmean = K + 0.5l1)
    du[2] = r * R2 * (1 - R2 / (K - l2*(e2(t) - 0.5))) - C2 * f_r2c2 - P * f_r2p
+   # du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t)))) - C1 * f_r1c1 - P * f_r1p
+   #du[2] = r * R2 * (1 - R2 / (K - l2*(e2(t)))) - C2 * f_r2c2 - P * f_r2p
    du[3] = e * C1 * f_r1c1 - P * f_c1p - mC * C1
    du[4] = e * C2 * f_r2c2 - P * f_c2p - mC * C2 
    #du[5] = e * P * f_r1p + e * P * f_r2p + e * P * f_c1p + e * P * f_c2p + e * P * f_gp - mP * P
@@ -697,7 +699,7 @@ t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilib
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.5, o = 0.2, H = 0.1, G_func = G_func, K = 3.0, aC_P = 5.0 )
+p = ModelPar_active(w = 0.5, o = 0.8, H = 0.1, G_func = G_func, K = 3.0, aC_P = 5.0 )
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
