@@ -237,10 +237,9 @@ end
 
 #Set up paramters - starting with just looking at effect of coupling, no subsidy and no omnivory
 @with_kw mutable struct ModelPar_active
-    w = 0.7   ##w = habitat preference for patch i 
-        ##do we need separate w for each C/R? wR1, wR2, wC1, wC2 ? 
-    o = 0.8 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
-    H = 0.2 ##H = preference for groceries (G)
+    w = 0.2   ##w = habitat preference for patch i 
+    o = 0.2 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
+    H = 0.1 ##H = preference for groceries (G)
 
     ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level 
     r = 2.0
@@ -292,6 +291,9 @@ end
 
     ##time varying function of G
      G_func::Function = t -> 1.0
+
+     ##fixed P value
+    # P_fixed = 0.25
 end
 
 ##Model 
@@ -508,8 +510,8 @@ end
 
 
 ##trying function to calculate equilibrium that i can then loop over for values of K etc. -using KC approaches
-function equilibrium_forced(p)
-    u0 = [1.5, 1.5, 1.0, 1.0, P_fixed] ##initial condition
+function equilibrium_forced(p, P0)
+    u0 = [1.5, 1.5, 1.0, 1.0, P0] ##initial condition
     
     t_warmup = 300.0 ##run long enough to reach the limit cycle 
     t_eval = 500.0 ##window to evaluate system properties
@@ -573,8 +575,8 @@ dt = step(t_eig)
 end 
 
 
-function equilibrium_unforced(p)
-    u0 = [1.5, 1.5, 1.0, 1.0, P_fixed] ##initial condition
+function equilibrium_unforced(p, P0)
+    u0 = [1.5, 1.5, 1.0, 1.0, P0] ##initial condition
     t_warmup = 300.0 ##run long enough to reach the equilibrium/limit cycle 
     t_eval = 500.0 ##window to evaluate system properties
     #tspan = (0.0, t_eval)
@@ -688,14 +690,14 @@ end
 ##set initial condition
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
-tspan = (0.0, 3000.0)
+tspan = (0.0, 500.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.2, o = 0.05, H = 0.1, G_func = G_func)
+p = ModelPar_active(w = 0.5, o = 0.2, H = 0.1, G_func = G_func, K = 3.0, aC_P = 5.0 )
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
@@ -711,7 +713,7 @@ plot(sol_1, tspan=(0, 500),
      title="ODE Solution - Active Omnivory")
 
 
-     for (u, t) in zip(sol_1.u, sol_1.t)
+    for (u, t) in zip(sol_1.u, sol_1.t)
     W = hab_pref(u, p, t)
     o = om_i_pref_fixed(u, p, t)
     H = sub_pref_func(u, p, t)
@@ -732,12 +734,56 @@ times = sol_1.t
 
    ##plot total P consumption 
 plot(times, fr_total, label = "total → P", xlabel = "Time", ylabel = "Predator Consumption")  
-plot!(times, fr_R1, label = "R1
- → P")
+plot!(times, fr_R1, label = "R1 → P")
 plot!(times, fr_R2, label = "R2 → P")
 plot!(times, fr_C1, label = "C1 → P")
 plot!(times, fr_C2, label = "C2 → P")
 plot!(times, fr_G, label = "G → P")
+
+
+##trying to calculate CV of harvest rates
+cv(x) = std(x) / mean(x)
+
+# calculate CVs
+cv_vals = [
+    cv(fr_total),
+    cv(fr_R1),
+    cv(fr_R2),
+    cv(fr_C1),
+    cv(fr_C2),
+    cv(fr_G)
+]
+
+labels = ["Total", "R1 → P", "R2 → P", "C1 → P", "C2 → P", "G → P"]
+
+bar(labels, cv_vals,
+    xlabel = "Flux into Predator",
+    ylabel = "Coefficient of Variation (CV)",
+    legend = false,
+    color = :steelblue,
+    title = "Predator Consumption CV"
+)
+
+
+min_total = minimum(fr_total)
+min_R1    = minimum(fr_R1)
+min_R2    = minimum(fr_R2)
+min_C1    = minimum(fr_C1)
+min_C2    = minimum(fr_C2)
+min_G     = minimum(fr_G)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -745,8 +791,8 @@ plot!(times, fr_G, label = "G → P")
 
 ##Look at dynamics with active omnivory 
 ##set Parameters
-P_fixed = 0.25
-u0 = [1.5, 1.5, 1.0, 1.0, P_fixed]
+#P_fixed = 0.25
+#u0 = [1.5, 1.5, 1.0, 1.0, P_fixed]
 tspan = (0.0, 100.0)
 p = ModelPar_active(w = 0.1, o = 0.1, H = 0.9, K =7.5, pf = 10.0, D = 0.5)
 

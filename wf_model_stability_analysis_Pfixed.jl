@@ -9,11 +9,11 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P constant/or n
 
 ##1) Looking at local stability for unforced model to see changes w/ increasing K
 p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0)
-P_fixed = 0.25
+#P_fixed = 0.25
 K_results = equilibrium_forced(p)
 
 results_K_all_uf = []
-P_fixed = 0.25
+#P_fixed = 0.25
 for K in 0.1:0.1:6.5
     p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
     eq_data = equilibrium_unforced(p)
@@ -813,6 +813,541 @@ plot!(df_eq.o, C2_max, col = "green", label = "C2 max")
 plot(df_eq.o, P_cv)
 
 
+##how does w influence? - unforced model
+results_w_all_uf = []
+for w in 0.0:0.1:1.0
+    p = ModelPar_active(w = w, o = 0.1, H = 0.1)
+    eq_data = equilibrium_unforced(p)
+    push!(results_w_all_uf, (; w=w, eq_data...))
+end
+df_eq = DataFrame(results_w_all_uf)
+
+plot(df_eq.w, df_eq.λ1)
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.w, R1_cv, label = "R1", xlabel = "w", ylabel = "CV")
+plot!(df_eq.w, R2_cv, col = "red", label = "R2")
+plot!(df_eq.w, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.w, C2_cv, col = "green", label = "C2")
+plot(df_eq.w, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.w, R1_mean, xlabel = "o", ylabel = "Mean")
+plot!(df_eq.w, R2_mean)
+plot!(df_eq.w, C1_mean)
+plot!(df_eq.w, C2_mean)
+plot!(df_eq.w, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.w, R1_sd, xlabel = "o", ylabel = "SD")
+plot!(df_eq.w, R2_sd)
+plot!(df_eq.w, C1_sd)
+plot!(df_eq.w, C2_sd)
+plot(df_eq.w, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.w, R1_min, label = "R1 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, R1_max, label = "R1 max")
+
+plot(df_eq.w, R2_min, col = "red", label = "R2 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.w, C1_min, col = "blue", label = "C1 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.w, C2_min, col = "green", label = "C2 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.w, P_cv)
+
+
+##how does w influence? - forced model
+results_w_all_f = []
+for w in 0.0:0.1:1.0
+    p = ModelPar_active(w = w, o = 0.1, H = 0.1)
+    eq_data = equilibrium_forced(p)
+    push!(results_w_all_f, (; w=w, eq_data...))
+end
+df_eq = DataFrame(results_w_all_f)
+
+plot(df_eq.w, df_eq.λ1)
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.w, R1_cv, label = "R1", xlabel = "w", ylabel = "CV")
+plot!(df_eq.w, R2_cv, col = "red", label = "R2")
+plot!(df_eq.w, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.w, C2_cv, col = "green", label = "C2")
+plot(df_eq.w, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.w, R1_mean, xlabel = "w", ylabel = "Mean")
+plot!(df_eq.w, R2_mean)
+plot!(df_eq.w, C1_mean)
+plot!(df_eq.w, C2_mean)
+plot!(df_eq.w, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.w, R1_sd, xlabel = "w", ylabel = "SD")
+plot!(df_eq.w, R2_sd)
+plot!(df_eq.w, C1_sd)
+plot!(df_eq.w, C2_sd)
+plot(df_eq.w, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.w, R1_min, label = "R1 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, R1_max, label = "R1 max")
+
+plot(df_eq.w, R2_min, col = "red", label = "R2 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.w, C1_min, col = "blue", label = "C1 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.w, C2_min, col = "green", label = "C2 min", xlabel = "w", ylabel ="min/max")
+plot!(df_eq.w, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.w, P_cv)
+
+
+##Do over gradient of o and w 
+results_o_w_all_uf = []
+for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
+    p = ModelPar_active(w = w, o = o, H = 0.1)
+   # t = 100
+   # P_fixed = 1.0
+    eq_data = equilibrium_unforced(p)
+    push!(results_o_w_all_uf, (; w=w, o=o, eq_data...))
+end
+df_eq_o_w = DataFrame(results_o_w_all_uf)
+
+# Get unique values
+o_vals = unique(df_eq_o_w.o)
+w_vals = unique(df_eq_o_w.w)
+
+# Sort them to be safe
+sort!(o_vals)
+sort!(w_vals)
+
+# Create matrix for λmax
+λ_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :λ1][1] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, λ_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
+
+
+##Do over gradient of o and w - forced model
+results_o_w_all_f = []
+for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
+    p = ModelPar_active(w = w, o = o, H = 0.1)
+   # t = 100
+    P_fixed = 0.25
+    eq_data = equilibrium_forced(p)
+    push!(results_o_w_all_f, (; w=w, o=o, eq_data...))
+end
+df_eq_o_w = DataFrame(results_o_w_all_f)
+
+# Get unique values
+o_vals = unique(df_eq_o_w.o)
+w_vals = unique(df_eq_o_w.w)
+
+# Sort them to be safe
+sort!(o_vals)
+sort!(w_vals)
+
+# Create matrix for λmax
+λ_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :λ1][1] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, λ_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
+
+# Create matrix for C1 cv
+C1_cv_mat = [df_eq_o_w[(df_eq_o_w.o .== o) .& (df_eq_o_w.w .== w), :cv][1][3] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, C1_cv_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "CV of C1",
+        colorbar_title = "CV",
+        c = :viridis)
+
+
+##how does G influence? - unforced model
+results_G_all_uf = []
+for G in 0.0:0.1:6.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G=G)
+    eq_data = equilibrium_unforced(p)
+    push!(results_G_all_uf, (; G=G, eq_data...))
+end
+df_eq = DataFrame(results_G_all_uf)
+
+plot(df_eq.G, df_eq.λ1)
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.G, R1_cv, label = "R1", xlabel = "G", ylabel = "CV")
+plot!(df_eq.G, R2_cv, col = "red", label = "R2")
+plot!(df_eq.G, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.G, C2_cv, col = "green", label = "C2")
+plot(df_eq.G, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.G, R1_mean, xlabel = "G", ylabel = "Mean")
+plot!(df_eq.G, R2_mean)
+plot!(df_eq.G, C1_mean)
+plot!(df_eq.G, C2_mean)
+plot!(df_eq.G, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.G, R1_sd, xlabel = "G", ylabel = "SD")
+plot!(df_eq.G, R2_sd)
+plot!(df_eq.G, C1_sd)
+plot!(df_eq.G, C2_sd)
+plot(df_eq.G, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.G, R1_min, label = "R1 min", xlabel = "G", ylabel ="min/max")
+plot!(df_eq.G, R1_max, label = "R1 max")
+
+plot(df_eq.G, R2_min, col = "red", label = "R2 min", xlabel = "G", ylabel ="min/max")
+plot!(df_eq.G, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.G, C1_min, col = "blue", label = "C1 min", xlabel = "G", ylabel ="min/max")
+plot!(df_eq.G, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.G, C2_min, col = "green", label = "C2 min", xlabel = "G", ylabel ="min/max")
+plot!(df_eq.G, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.G, P_cv)
+
+##how does G influence? - forced model
+results_G_all_f = []
+for G in 0.0:0.1:1.5
+    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, G=G)
+    eq_data = equilibrium_forced(p, 0.25)
+    push!(results_G_all_f, (; G=G, eq_data...))
+end
+df_eq = DataFrame(results_G_all_f)
+
+plot(df_eq.G, df_eq.λ1)
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.G, R1_cv, label = "R1", xlabel = "G", ylabel = "CV")
+plot!(df_eq.G, R2_cv, col = "red", label = "R2")
+plot!(df_eq.G, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.G, C2_cv, col = "green", label = "C2")
+plot(df_eq.G, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.G, R1_mean, xlabel = "mC", ylabel = "Mean")
+plot!(df_eq.G, R2_mean)
+plot!(df_eq.G, C1_mean)
+plot!(df_eq.G, C2_mean)
+plot!(df_eq.G, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.G, R1_sd, xlabel = "mC", ylabel = "SD")
+plot!(df_eq.G, R2_sd)
+plot!(df_eq.G, C1_sd)
+plot!(df_eq.G, C2_sd)
+plot(df_eq.G, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.G, R1_min, label = "R1 min", xlabel = "mC", ylabel ="min/max")
+plot!(df_eq.G, R1_max, label = "R1 max")
+
+plot(df_eq.G, R2_min, col = "red", label = "R2 min", xlabel = "mC", ylabel ="min/max")
+plot!(df_eq.G, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.G, C1_min, col = "blue", label = "C1 min", xlabel = "mC", ylabel ="min/max")
+plot!(df_eq.G, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.G, C2_min, col = "green", label = "C2 min", xlabel = "mC", ylabel ="min/max")
+plot!(df_eq.G, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.G, P_cv)
+
+
+##how does H influence? - forced model
+results_H_all_f = []
+P0 = 0.25
+for H in 0.0:0.1:1.0
+    p = ModelPar_active(w = 0.2, o = 0.1, H = H, K = 4.0)
+    eq_data = equilibrium_forced(p, P0)
+    push!(results_H_all_f, (; H=H, eq_data...))
+end
+df_eq = DataFrame(results_H_all_f)
+
+plot(df_eq.H, df_eq.λ1)
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.H, R1_cv, label = "R1", xlabel = "H", ylabel = "CV")
+plot!(df_eq.H, R2_cv, col = "red", label = "R2")
+plot!(df_eq.H, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.H, C2_cv, col = "green", label = "C2")
+plot(df_eq.H, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.H, R1_mean, xlabel = "H", ylabel = "Mean")
+plot!(df_eq.H, R2_mean)
+plot!(df_eq.H, C1_mean)
+plot!(df_eq.H, C2_mean)
+plot!(df_eq.H, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.H, R1_sd, xlabel = "H", ylabel = "SD")
+plot!(df_eq.H, R2_sd)
+plot!(df_eq.H, C1_sd)
+plot!(df_eq.H, C2_sd)
+plot(df_eq.H, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.H, R1_min, label = "R1 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, R1_max, label = "R1 max")
+
+plot(df_eq.H, R2_min, col = "red", label = "R2 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.H, C1_min, col = "blue", label = "C1 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.H, C2_min, col = "green", label = "C2 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.H, P_cv)
+
+
+##how does P influence? - unforced model
+results_P_all_uf = []
+for P0 in 0.0:0.1:6.0
+    p = ModelPar_active(w=0.2, o=0.1, H=0.1)   # no P here; it's a state
+    eq_data = equilibrium_unforced(p, P0)
+    push!(results_P_all_uf, (; P0, eq_data...))
+end
+
+
+df_eq = DataFrame(results_P_all_uf)
+
+plot(df_eq.P0, df_eq.λ1)
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.P_fixed, R1_cv, label = "R1", xlabel = "P", ylabel = "CV")
+plot!(df_eq.P_fixed, R2_cv, col = "red", label = "R2")
+plot!(df_eq.P_fixed, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.P_fixed, C2_cv, col = "green", label = "C2")
+plot(df_eq.P_fixed, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.P_fixed, R1_mean, xlabel = "P", ylabel = "Mean")
+plot!(df_eq.P_fixed, R2_mean)
+plot!(df_eq.P_fixed, C1_mean)
+plot!(df_eq.P_fixed, C2_mean)
+plot!(df_eq.P_fixed, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.P_fixed, R1_sd, xlabel = "P", ylabel = "SD")
+plot!(df_eq.P_fixed, R2_sd)
+plot!(df_eq.P_fixed, C1_sd)
+plot!(df_eq.P_fixed, C2_sd)
+plot(df_eq.P_fixed, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.P_fixed, R1_min, label = "R1 min", xlabel = "P", ylabel ="min/max")
+plot!(df_eq.P_fixed, R1_max, label = "R1 max")
+
+plot(df_eq.P_fixed, R2_min, col = "red", label = "R2 min", xlabel = "P", ylabel ="min/max")
+plot!(df_eq.P_fixed, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.P_fixed, C1_min, col = "blue", label = "C1 min", xlabel = "P", ylabel ="min/max")
+plot!(df_eq.P_fixed, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.P_fixed, C2_min, col = "green", label = "C2 min", xlabel = "P", ylabel ="min/max")
+plot!(df_eq.P_fixed, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.P_fixed, P_cv)
 
 
 
@@ -820,7 +1355,7 @@ plot(df_eq.o, P_cv)
 
 
 
-
+        ##OLD CODE
 ##how does o influence?
 results_o_all = []
 for o in 0.1:0.1:1.0
