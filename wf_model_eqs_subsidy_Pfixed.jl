@@ -704,14 +704,14 @@ end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
-tspan = (0.0, 500.0)
+tspan = (0.0, 200.0)
 G_pre = 2.0 
-G_pulse = G_pre
-t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
-t_recover = 550.0 ##time when decline in resources ends 
+G_pulse = G_pre*0.25
+t_pulse = 100.0 ##time when disturbance occurs, want to be once model at equilibirum
+t_recover = 125.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 1.0, o = 1.0, H = 0.3, G_func = G_func)
+p = ModelPar_active(w = 0.0, o = 0.0, H = 0.7, G_func = G_func)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
@@ -734,6 +734,8 @@ plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omn
 #end
 
 ##Look at predator consumption  
+
+
 fr_vals_1 = [total_FR_into_P(u, p, t) for (u, t) in zip(sol_1.u, sol_1.t)]
 
 # Separate each series into its own array
