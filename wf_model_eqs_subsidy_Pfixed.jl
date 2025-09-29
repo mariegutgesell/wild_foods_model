@@ -692,14 +692,14 @@ end
 ##set initial condition
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
-tspan = (0.0, 500.0)
+tspan = (0.0, 100.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 500.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 550.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.5, o = 0.8, H = 0.1, G_func = G_func, K = 3.0, aC_P = 5.0 )
+p = ModelPar_active(w = 0.2, o = 0.2, H = 0.1, G_func = G_func, K = 3.0, aC_P = 1.0 )
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)

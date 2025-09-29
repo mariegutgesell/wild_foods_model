@@ -96,7 +96,7 @@ plot(df_cv_K.K, df_cv_K.cv_G, label = "G consumption", xlabel = "K", ylabel = "C
 
 results_o_f = []
 for o in 0.0:0.1:1.0
-    pᵢ = ModelPar_active(w=0.2, o=o, H=0.1)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=0.2, o=o, H=0.1, l1 = 0.5, l2 = 0.5)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_o_f, (; o, cv_nt...))  # NamedTuple splat into the row
 end
@@ -114,7 +114,7 @@ plot!(df_cv_o.o, df_cv_o.cv_G, label = "G consumption", xlabel = "o", ylabel = "
 ##do range of w next
 results_w_f = []
 for w in 0.0:0.1:1.0
-    pᵢ = ModelPar_active(w=w, o=0.1, H=0.1)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=w, o=0.1, H=0.1, l1 = 0.5, l2 = 0.5)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_w_f, (; w, cv_nt...))  # NamedTuple splat into the row
 end
