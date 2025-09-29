@@ -61,14 +61,26 @@ function fr_cv_forced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
         cv_R2    = cv(fr_R2),
         cv_C1    = cv(fr_C1),
         cv_C2    = cv(fr_C2),
-        cv_G     = cv(fr_G)
+        cv_G     = cv(fr_G),
+        mean_total = mean(fr_total),
+        mean_R1 = mean(fr_R1),
+        mean_R2 = mean(fr_R2),
+        mean_C1 = mean(fr_C1),
+        mean_C2 = mean(fr_C2),
+        mean_G = mean(fr_G),
+        sd_total = std(fr_total),
+        sd_R1 = std(fr_R1),
+        sd_R2 = std(fr_R2),
+        sd_C1 = std(fr_C1),
+        sd_C2 = std(fr_C2),
+        sd_G = std(fr_G),
     )
 end
 
 
 ##Look at across range of parameters
 results_K_uf = []
-for K in 0.0:0.1:6.5
+for K in 0.1:0.1:6.5
     pᵢ = ModelPar_active(w=0.2, o=0.1, H=0.1, K=K)  # add other defaults as needed
     cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_K_uf, (; K, cv_nt...))  # NamedTuple splat into the row
@@ -79,7 +91,7 @@ plot(df_cv_K.K, df_cv_K.cv_total)
 
 
 results_K_f = []
-for K in 2.0:0.1:6.5
+for K in 0.1:0.1:6.5
     pᵢ = ModelPar_active(w=0.2, o=0.1, H=0.1, K=K)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_K_f, (; K, cv_nt...))  # NamedTuple splat into the row
@@ -96,12 +108,13 @@ plot(df_cv_K.K, df_cv_K.cv_G, label = "G consumption", xlabel = "K", ylabel = "C
 
 results_o_f = []
 for o in 0.0:0.1:1.0
-    pᵢ = ModelPar_active(w=0.2, o=o, H=0.1, l1 = 0.5, l2 = 0.5)  # add other defaults as needed
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=0.0, o=o, H=0.3)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_o_f, (; o, cv_nt...))  # NamedTuple splat into the row
 end
 df_cv_o = DataFrame(results_o_f)
-
+print(df_cv_o)
 plot(df_cv_o.o, df_cv_o.cv_total, label = "total consumption", xlabel = "o", ylabel = "CV")
 plot!(df_cv_o.o, df_cv_o.cv_R1, label = "R1 consumption", xlabel = "o", ylabel = "CV")
 plot!(df_cv_o.o, df_cv_o.cv_R2, label = "R2 consumption", xlabel = "o", ylabel = "CV")
@@ -110,11 +123,47 @@ plot!(df_cv_o.o, df_cv_o.cv_C2, label = "C2 consumption", xlabel = "o", ylabel =
 plot!(df_cv_o.o, df_cv_o.cv_G, label = "G consumption", xlabel = "o", ylabel = "CV")
 
 
+##trying to plot total harvest cv over values of o 
+# use categorical tick labels so bars are discrete by o
+o_labels = string.(round.(df_cv_o.o, digits=1))
+
+bar(
+    o_labels, df_cv_o.cv_total;
+    xlabel = "o (omnivory preference)",
+    ylabel = "CV of total harvest",
+    title  = "Total harvest CV across o",
+    legend = false,
+    bar_width = 0.8
+)
+
+bar(
+    o_labels, df_cv_o.mean_total;
+    xlabel = "o (omnivory preference)",
+    ylabel = "Mean total harvest",
+    title  = "Mean Total harvest across o",
+    legend = false,
+    bar_width = 0.8
+)
+
+bar(
+    o_labels, df_cv_o.sd_total;
+    xlabel = "o (omnivory preference)",
+    ylabel = "SD total harvest",
+    title  = "SD Total harvest across o",
+    legend = false,
+    bar_width = 0.8
+)
+
+
+
+
+
 
 ##do range of w next
 results_w_f = []
 for w in 0.0:0.1:1.0
-    pᵢ = ModelPar_active(w=w, o=0.1, H=0.1, l1 = 0.5, l2 = 0.5)  # add other defaults as needed
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=w, o=0.0, H=0.3)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_w_f, (; w, cv_nt...))  # NamedTuple splat into the row
 end
@@ -127,18 +176,37 @@ plot!(df_cv_w.w, df_cv_w.cv_C1, label = "C1 consumption", xlabel = "w", ylabel =
 plot!(df_cv_w.w, df_cv_w.cv_C2, label = "C2 consumption", xlabel = "w", ylabel = "CV")
 plot!(df_cv_w.w, df_cv_w.cv_G, label = "G consumption", xlabel = "w", ylabel = "CV")
 
+w_labels = string.(round.(df_cv_w.w, digits=1))
+
+bar(
+    w_labels, df_cv_w.cv_total;
+    xlabel = "w (habitat preference)",
+    ylabel = "CV of total harvest",
+    title  = "Total harvest CV across w",
+    legend = false,
+    bar_width = 0.8
+)
+
+bar(
+    w_labels, df_cv_w.mean_total;
+    xlabel = "w (habitat preference)",
+    ylabel = "Mean total harvest",
+    title  = "Mean Total harvest across w",
+    legend = false,
+    bar_width = 0.8
+)
+
+bar(
+    w_labels, df_cv_w.sd_total;
+    xlabel = "w (habitat preference)",
+    ylabel = "SD total harvest",
+    title  = "SD Total harvest across w",
+    legend = false,
+    bar_width = 0.8
+)
 
 
 
-
-
-first(df_cv_K, 5)
-labels  = ["Total","R1 → P","R2 → P","C1 → P","C2 → P","G → P"]
-row     = last(eachrow(df_cv_K))
-cv_vals = [row.cv_total, row.cv_R1, row.cv_R2, row.cv_C1, row.cv_C2, row.cv_G]
-
-bar(labels, cv_vals; legend=false, xlabel="Flux into Predator",
-    ylabel="Coefficient of Variation (CV)", title="Predator Consumption CV")
 
 
     ##trying heatmap of CV of total harvest-- NOT WORKING 
@@ -148,20 +216,27 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(w=w, o=o, H=0.1, aC_P=1.0, K = 5.0)  # set/adjust other params as you need
-    cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
+    pᵢ = ModelPar_active(w=w, o=o, H=0.3)  # set/adjust other params as you need
+    cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
 end
-df_cv_ow = DataFrame(results_grid)
+df_cv_o_w = DataFrame(results_grid)
 
 
-# make a matrix Z with rows = unique(o), cols = unique(w)
-sort!(df_cv_ow, [:o, :w])
-O = unique(df_cv_ow.o); W = unique(df_cv_ow.w)
-Z = Array{Float64}(undef, length(O), length(W))
-for (i, oi) in enumerate(O), (j, wj) in enumerate(W)
-    Z[i, j] = df_cv_ow[(df_cv_ow.o .== oi) .& (df_cv_ow.w .== wj), :cv_total][1]
-end
+o_vals = unique(df_cv_o_w.o)
+w_vals = unique(df_cv_o_w.w)
 
-heatmap(W, O, Z; xlabel="w", ylabel="o", colorbar_title="CV",
-        title="CV(total → P) across (o, w)")
+# Sort them to be safe
+sort!(o_vals)
+sort!(w_vals)
+
+# Create matrix for cv total
+cv_total_mat = [df_cv_o_w[(df_cv_o_w.o .== o) .& (df_cv_o_w.w .== w), :cv_total][1] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, cv_total_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "CV of Total Harvest",
+        colorbar_title = "CV",
+        c = :viridis)
