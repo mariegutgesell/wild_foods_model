@@ -209,7 +209,7 @@ bar(
 
 
 
-    ##trying heatmap of CV of total harvest
+##trying heatmap of CV of total harvest
 
 o_vals = 0.0:0.1:1.0
 w_vals = 0.0:0.1:1.0

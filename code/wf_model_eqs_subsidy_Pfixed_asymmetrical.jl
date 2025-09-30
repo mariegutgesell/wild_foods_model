@@ -1,5 +1,6 @@
 ##Code to set up equations for wild food model - WITH SUBSIDY, Gutgesell omnivory function, different paramters per trophic level, foraging scale removed to simplify
-##Date Initiated: June 18, 2025, added temporal variance in R July 3, 2025
+##Model set up to allow asymmetry across energy channels
+##Date Initiated: Sept 30, 2025, 
 ##Contributor(s): Marie K. Gutgesell
 
 #using Pkg
@@ -71,27 +72,27 @@ end
 
 ##functional responses between resources and consumer 
 function f_R1C1(u, p, t)
-    @unpack aR_C, hR_C = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR1_C1, hR1_C1 = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     ##H is preference for groceries  -holding constant 
     R1, R2, C1, C2, P = u  ##defines state variables, G = groceries
     G = p.G_func(t)
-    return aR_C * R1 / (1 + aR_C * hR_C * R1)
+    return aR1_C1 * R1 / (1 + aR1_C1 * hR1_C1 * R1)
 end
 
 function f_R2C2(u, p, t)
-    @unpack aR_C, hR_C = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR2_C2, hR2_C2 = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     ##H is preference for groceries  -holding constant 
     R1, R2, C1, C2, P = u  ##defines state variables, G = groceries
     G = p.G_func(t)
 
-    return aR_C * R2 / (1 + aR_C * hR_C * R2)
+    return aR2_C2 * R2 / (1 + aR2_C2 * hR2_C2 * R2)
 end
 
 
 
 ##functional response between resources and predator 
 function f_R1P(u, p, t)
-    @unpack aR_P,aC_P, aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     ##H is preference for groceries  -holding constant 
     R1, R2, C1, C2, P = u  ##defines state variables, G = groceries
     W1 = p.W(u, p, t) ##function that defines habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
@@ -100,13 +101,13 @@ function f_R1P(u, p, t)
     H1 = p.sub_pref(u, p, t)
     G = p.G_func(t)
     
-    numerator = (1-H1) * W1 * aR_P * o1 * R1
-    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+    numerator = (1-H1) * W1 * aR1_P * o1 * R1
+    denominator = 1 + (W1 * aR1_P * hR1_P * o1 * R1 + (1-W1)* aR2_P * hR2_P * o2 * R2 + W1 * aC1_P * hC1_P * (1-o1) * C1 + (1-W1) * aC2_P * hC2_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
     return numerator / denominator
 end
 
 function f_R2P(u, p, t)
-   @unpack aR_P,aC_P, aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
@@ -115,12 +116,12 @@ function f_R2P(u, p, t)
     G = p.G_func(t)
 
     numerator = (1-H1) * (1 - W1) * aR2_P * o2 * R2
-   denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-      return numerator / denominator
+  denominator = 1 + (W1 * aR1_P * hR1_P * o1 * R1 + (1-W1)* aR2_P * hR2_P * o2 * R2 + W1 * aC1_P * hC1_P * (1-o1) * C1 + (1-W1) * aC2_P * hC2_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+     return numerator / denominator
 end
 
 function f_C1P(u, p, t)
-   @unpack aR_P,aC_P, aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
@@ -129,12 +130,12 @@ function f_C1P(u, p, t)
     G = p.G_func(t)
 
     numerator = (1-H1) * W1 * aC1_P * (1 - o1) * C1
-    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+   denominator = 1 + (W1 * aR1_P * hR1_P * o1 * R1 + (1-W1)* aR2_P * hR2_P * o2 * R2 + W1 * aC1_P * hC1_P * (1-o1) * C1 + (1-W1) * aC2_P * hC2_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
     return numerator / denominator
 end
 
 function f_C2P(u, p, t)
-   @unpack aR_P,aC_P, aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
@@ -143,13 +144,13 @@ function f_C2P(u, p, t)
     G = p.G_func(t)
 
     numerator = (1-H1) * (1 - W1) * aC2_P * (1 - o2) * C2
-   denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-       return numerator / denominator
+ denominator = 1 + (W1 * aR1_P * hR1_P * o1 * R1 + (1-W1)* aR2_P * hR2_P * o2 * R2 + W1 * aC1_P * hC1_P * (1-o1) * C1 + (1-W1) * aC2_P * hC2_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+      return numerator / denominator
 end
 
 ##trying out functional resposne for G.. type 2 functional response 
 function f_GP(u, p, t)
-   @unpack aR_P,aC_P, aG_P, hR_P, hC_P, hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
+    @unpack aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P = p ##note: may need to put the p directly in the equation, not sure if will work if calling p for the functions below
     R1, R2, C1, C2, P = u  ##defines state variables
     W1 = p.W(u, p, t) ##function that defines foraging scale and habitat preference (since Q = 0, Si = Wi, so Sj = 1-Si)
     o1 = p.d_om_i(u, p, t) ##function that defines degree of omnivory in patch 1
@@ -158,8 +159,8 @@ function f_GP(u, p, t)
     G = p.G_func(t)
 
     numerator = H1 * aG_P * G #trying if i remove scaling / suppression of G by other foraging preferences, i think this makes biological sense (but keep 1-H1 in other FRs)
-   denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-      return numerator / denominator
+  denominator = 1 + (W1 * aR1_P * hR1_P * o1 * R1 + (1-W1)* aR2_P * hR2_P * o2 * R2 + W1 * aC1_P * hC1_P * (1-o1) * C1 + (1-W1) * aC2_P * hC2_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+     return numerator / denominator
 end
 
 
@@ -242,18 +243,29 @@ end
     H = 0.1 ##H = preference for groceries (G)
 
     ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level 
-    r = 1.0
-    K = 3.25
-    aR_C = 2.5  ##attack rate  of consumer on R
-    aR_P = 4.0 ##attack rate of P on R 
-    aC_P = 3.4  ##attack rate of P on C 
+    r1 = 1.0
+    r2 = 1.0
+    K1 = 3.25
+    K2 = 3.25
+    aR1_C1 = 2.5  ##attack rate  of consumer on R
+    aR2_C2 = 2.5
+    aR1_P = 4.0 ##attack rate of P on R 
+    aR2_P = 4.0
+    aC1_P = 3.4
+    aC2_P = 3.4  ##attack rate of P on C 
     aG_P = 1.0  ##attack rate of P on G
-    e = 0.8   ##energy conversion -
-    mC = 1.0 ##C mortality rate
+    eC1 = 0.8   ##energy conversion -
+    eC2 = 0.8
+    eP = 0.8
+    mC1 = 1.0 ##C mortality rate
+    mC2 = 1.0
     mP = 0.5   ## P mortality rate
-    hR_C = 0.4 ##handling time of C on R
-    hR_P = 1.25  ##handling time of P on R  
-    hC_P = 1.25 ##handling time of P on C
+    hR1_C1 = 0.4 ##handling time of C on R
+    hR2_C2 = 0.4
+    hR1_P = 1.25  ##handling time of P on R  
+    hR2_P = 1.25
+    hC1_P = 1.25 ##handling time of P on C
+    hC2_P = 1.25
     hG_P = 1.25 ##handling time of P on G
 
     ##Density dependent habitat preference function (simplifying for now to remove foraging scale)
@@ -298,7 +310,7 @@ end
 
 ##Model 
 function model_forced!(du, u, p ,t)
-    @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l1, l2, e1, e2 = p
+    @unpack r1, r2, K1, K2, aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P, eC1, eC2, eP, mC1, mC2, mP, H, l1, l2, e1, e2 = p
    R1, R2, C1, C2, P = u 
    G = p.G_func(t)
  
@@ -314,12 +326,12 @@ function model_forced!(du, u, p ,t)
   f_r2c2 = p.f_r2c2(u, p, t)
    
    ##ODEs
-  # du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t) - 0.5))) - C1 * f_r1c1 - P * f_r1p ##subtracting 0.5 from e1 essentially increases mean K (Kmean = K + 0.5l1)
-  # du[2] = r * R2 * (1 - R2 / (K - l2*(e2(t) - 0.5))) - C2 * f_r2c2 - P * f_r2p
-    du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t)))) - C1 * f_r1c1 - P * f_r1p
-   du[2] = r * R2 * (1 - R2 / (K - l2*(e2(t)))) - C2 * f_r2c2 - P * f_r2p
-   du[3] = e * C1 * f_r1c1 - P * f_c1p - mC * C1
-   du[4] = e * C2 * f_r2c2 - P * f_c2p - mC * C2 
+  # du[1] = r1 * R1 * (1 - R1 / (K1 - l1*(e1(t) - 0.5))) - C1 * f_r1c1 - P * f_r1p ##subtracting 0.5 from e1 essentially increases mean K (Kmean = K + 0.5l1)
+  # du[2] = r2 * R2 * (1 - R2 / (K2 - l2*(e2(t) - 0.5))) - C2 * f_r2c2 - P * f_r2p
+    du[1] = r1 * R1 * (1 - R1 / (K1 - l1*(e1(t)))) - C1 * f_r1c1 - P * f_r1p
+   du[2] = r2 * R2 * (1 - R2 / (K2 - l2*(e2(t)))) - C2 * f_r2c2 - P * f_r2p
+   du[3] = eC1 * C1 * f_r1c1 - P * f_c1p - mC1 * C1
+   du[4] = eC2 * C2 * f_r2c2 - P * f_c2p - mC2 * C2 
    #du[5] = e * P * f_r1p + e * P * f_r2p + e * P * f_c1p + e * P * f_c2p + e * P * f_gp - mP * P
     du[5] = 0 ##can do it this way here if using differential equaitons, but to find equilibrium using NLSOlve will need to use a wrapper function that says not to solve for P and G 
 
@@ -329,8 +341,8 @@ function model_forced!(du, u, p ,t)
 
  ##can adjust model and do forced/unforced just by changing parameters l1 andl2, will simplify code so dont need to do all forced/unforced i think.... just set up equilibirum functions to do both, maybe have if statements 
 function model_unforced!(du, u, p ,t)
-   @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l1, l2, e1, e2 = p
-    R1, R2, C1, C2, P = u 
+    @unpack r1, r2, K1, K2, aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P, eC1, eC2, eP, mC1, mC2, mP, H = p
+   R1, R2, C1, C2, P = u 
      G = p.G_func(t)
  
    ##predator functional responses
@@ -345,10 +357,10 @@ function model_unforced!(du, u, p ,t)
   f_r2c2 = p.f_r2c2(u, p, t)
    
    ##ODEs
-   du[1] = r * R1 * (1 - R1 / K) - C1 * f_r1c1 - P * f_r1p ##if want to use equations w/o temporal forcing
-   du[2] = r * R2 * (1 - R2 / K) - C2 * f_r2c2 - P * f_r2p
-   du[3] = e * C1 * f_r1c1 - P * f_c1p - mC * C1
-   du[4] = e * C2 * f_r2c2 - P * f_c2p - mC * C2 
+   du[1] = r1 * R1 * (1 - R1 / K1) - C1 * f_r1c1 - P * f_r1p ##if want to use equations w/o temporal forcing
+   du[2] = r2 * R2 * (1 - R2 / K2) - C2 * f_r2c2 - P * f_r2p
+   du[3] = eC1 * C1 * f_r1c1 - P * f_c1p - mC1 * C1
+   du[4] = eC2 * C2 * f_r2c2 - P * f_c2p - mC2 * C2 
   # du[5] = e * P * f_r1p + e * P * f_r2p + e * P * f_c1p + e * P * f_c2p + e * P * f_gp - mP * P
    du[5] = 0 ##can do it this way here if using differential equaitons, but to find equilibrium using NLSOlve will need to use a wrapper function that says not to solve for P and G 
 
@@ -359,8 +371,8 @@ function model_unforced!(du, u, p ,t)
 
 ##function to calculate total harvest for P, by summing functional response for P at each time step
 function total_FR_into_P(u, p ,t)
-  @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l1, l2, e1, e2 = p
-    R1, R2, C1, C2, P = u 
+    @unpack r1, r2, K1, K2, aR1_P,aR2_P, aC1_P,aC2_P, aG_P, hR1_P,hR2_P, hC1_P,hC2_P,  hG_P, eC1, eC2, eP, mC1, mC2, mP, H, l1, l2, e1, e2 = p
+   R1, R2, C1, C2, P = u 
    G = p.G_func(t)
    ##predator functional responses
    f_r1p = p.f_r1p(u, p, t)
