@@ -114,7 +114,7 @@ function f_R2P(u, p, t)
     H1 = p.sub_pref(u, p, t)
     G = p.G_func(t)
 
-    numerator = (1-H1) * (1 - W1) * aR2_P * o2 * R2
+    numerator = (1-H1) * (1 - W1) * aR_P * o2 * R2
    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
       return numerator / denominator
 end
@@ -128,7 +128,7 @@ function f_C1P(u, p, t)
     H1 = p.sub_pref(u, p, t)
     G = p.G_func(t)
 
-    numerator = (1-H1) * W1 * aC1_P * (1 - o1) * C1
+    numerator = (1-H1) * W1 * aC_P * (1 - o1) * C1
     denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
     return numerator / denominator
 end
@@ -142,7 +142,7 @@ function f_C2P(u, p, t)
     H1 = p.sub_pref(u, p, t)
     G = p.G_func(t)
 
-    numerator = (1-H1) * (1 - W1) * aC2_P * (1 - o2) * C2
+    numerator = (1-H1) * (1 - W1) * aC_P * (1 - o2) * C2
    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
        return numerator / denominator
 end
@@ -241,16 +241,16 @@ end
     o = 0.2 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
     H = 0.1 ##H = preference for groceries (G)
 
-    ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level 
+    ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level - based on values in Fig 3, McCann et al., 2005
     r = 1.0
     K = 3.25
     aR_C = 2.5  ##attack rate  of consumer on R
     aR_P = 4.0 ##attack rate of P on R 
     aC_P = 3.4  ##attack rate of P on C 
-    aG_P = 1.0  ##attack rate of P on G
+    aG_P = 3.4  ##attack rate of P on G
     e = 0.8   ##energy conversion -
     mC = 1.0 ##C mortality rate
-    mP = 0.5   ## P mortality rate
+    mP = 0.45   ## P mortality rate
     hR_C = 0.4 ##handling time of C on R
     hR_P = 1.25  ##handling time of P on R  
     hC_P = 1.25 ##handling time of P on C
@@ -282,8 +282,9 @@ end
     f_gp2::Function = f_GP_2
 
       ##temporal variation in R parameters
-   l1 = 2.0  #magnitude of variation in K of R1 
-   l2 = 2.0  #magnitude of variation in K of R2
+   #l1 = 1.0  #magnitude of variation in K of R1 
+   #l2 = 1.0  #magnitude of variation in K of R2
+   l = 1.0
    pf = 10.0 ##period of fluctuation 
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
     e1::Function = t -> sin(2π / pf * t)
@@ -298,7 +299,7 @@ end
 
 ##Model 
 function model_forced!(du, u, p ,t)
-    @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l1, l2, e1, e2 = p
+    @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l, e1, e2 = p
    R1, R2, C1, C2, P = u 
    G = p.G_func(t)
  
@@ -314,10 +315,10 @@ function model_forced!(du, u, p ,t)
   f_r2c2 = p.f_r2c2(u, p, t)
    
    ##ODEs
-  # du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t) - 0.5))) - C1 * f_r1c1 - P * f_r1p ##subtracting 0.5 from e1 essentially increases mean K (Kmean = K + 0.5l1)
-  # du[2] = r * R2 * (1 - R2 / (K - l2*(e2(t) - 0.5))) - C2 * f_r2c2 - P * f_r2p
-    du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t)))) - C1 * f_r1c1 - P * f_r1p
-   du[2] = r * R2 * (1 - R2 / (K - l2*(e2(t)))) - C2 * f_r2c2 - P * f_r2p
+  # du[1] = r * R1 * (1 - R1 / (K - l*(e1(t) - 0.5))) - C1 * f_r1c1 - P * f_r1p ##subtracting 0.5 from e1 essentially increases mean K (Kmean = K + 0.5l1)
+  # du[2] = r * R2 * (1 - R2 / (K - l*(e2(t) - 0.5))) - C2 * f_r2c2 - P * f_r2p
+    du[1] = r * R1 * (1 - R1 / (K - l*(e1(t)))) - C1 * f_r1c1 - P * f_r1p
+   du[2] = r * R2 * (1 - R2 / (K - l*(e2(t)))) - C2 * f_r2c2 - P * f_r2p
    du[3] = e * C1 * f_r1c1 - P * f_c1p - mC * C1
    du[4] = e * C2 * f_r2c2 - P * f_c2p - mC * C2 
    #du[5] = e * P * f_r1p + e * P * f_r2p + e * P * f_c1p + e * P * f_c2p + e * P * f_gp - mP * P
@@ -329,7 +330,7 @@ function model_forced!(du, u, p ,t)
 
  ##can adjust model and do forced/unforced just by changing parameters l1 andl2, will simplify code so dont need to do all forced/unforced i think.... just set up equilibirum functions to do both, maybe have if statements 
 function model_unforced!(du, u, p ,t)
-   @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l1, l2, e1, e2 = p
+   @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l, e1, e2 = p
     R1, R2, C1, C2, P = u 
      G = p.G_func(t)
  
@@ -359,7 +360,7 @@ function model_unforced!(du, u, p ,t)
 
 ##function to calculate total harvest for P, by summing functional response for P at each time step
 function total_FR_into_P(u, p ,t)
-  @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l1, l2, e1, e2 = p
+  @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l, e1, e2 = p
     R1, R2, C1, C2, P = u 
    G = p.G_func(t)
    ##predator functional responses
@@ -693,14 +694,14 @@ end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
-tspan = (0.0, 200.0)
+tspan = (0.0, 3000.0)
 G_pre = 2.0 
-G_pulse = G_pre*0.25
+G_pulse = G_pre
 t_pulse = 100.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 125.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.0, o = 0.0, H = 0.7, G_func = G_func)
+p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K = 4.0, l = 1.0)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
