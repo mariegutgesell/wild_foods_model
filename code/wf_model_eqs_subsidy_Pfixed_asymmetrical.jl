@@ -1,6 +1,6 @@
-##Code to set up equations for wild food model - WITH SUBSIDY, Gutgesell omnivory function, different paramters per trophic level, foraging scale removed to simplify
+##Code to set up equations for wild food model - WITH SUBSIDY, Gutgesell omnivory function, different paramters per trophic level, foraging scale removed to simplify, asymmetry across energy channels
 ##Model set up to allow asymmetry across energy channels
-##Date Initiated: Sept 30, 2025, 
+##Date Initiated: Oct 8, 2025, 
 ##Contributor(s): Marie K. Gutgesell
 
 #using Pkg
@@ -44,20 +44,20 @@ end
 ### Omnivory preference functions -- density dependent preference, where o measures the speed of switching, based on Gutgesell et al., 2022
 function om_i_pref_active(u, p, t)
     R1, R2, C1, C2, P = u 
-    return (p.o * R1) / (p.o * R1 + (1-p.o) * C1) 
+    return (p.o1 * R1) / (p.o1 * R1 + (1-p.o1) * C1) 
 end
 
 function om_j_pref_active(u, p, t)
      R1, R2, C1, C2, P = u 
-    return (p.o * R2) / (p.o * R2 + (1-p.o) * C2) 
+    return (p.o2 * R2) / (p.o2 * R2 + (1-p.o2) * C2) 
 end
 
 function om_i_pref_fixed(u,p,t)
-    return p.o
+    return p.o1
 end
 
 function om_j_pref_fixed(u,p,t)
-    return p.o
+    return p.o2
 end
 
 ##Grocery Preference -- also density dependent, and H measures speed of switching 
@@ -177,7 +177,7 @@ G_func(t) = (t < t_pulse || t ≥ t_recover) ? G_pre : G_pulse
 
 
 
-#Set up paramters - starting with just looking at effect of coupling, no subsidy and no omnivory
+#Set up paramters - 
 @with_kw mutable struct ModelPar_passive
     w = 0.5   ##w = habitat preference for patch i 
         ##do we need separate w for each C/R? wR1, wR2, wC1, wC2 ? 
@@ -236,36 +236,37 @@ G_func(t) = (t < t_pulse || t ≥ t_recover) ? G_pre : G_pulse
 
 end
 
-#Set up paramters - starting with just looking at effect of coupling, no subsidy and no omnivory
+#Set up paramters - 
 @with_kw mutable struct ModelPar_active
     w = 0.2   ##w = habitat preference for patch i 
-    o = 0.2 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
+    o1 = 0.2 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
+    o2 = 0.2
     H = 0.1 ##H = preference for groceries (G)
 
-    ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level 
-    r1 = 1.0
-    r2 = 1.0
-    K1 = 3.25
-    K2 = 3.25
-    aR1_C1 = 2.5  ##attack rate  of consumer on R
-    aR2_C2 = 2.5
-    aR1_P = 4.0 ##attack rate of P on R 
-    aR2_P = 4.0
-    aC1_P = 3.4
-    aC2_P = 3.4  ##attack rate of P on C 
-    aG_P = 1.0  ##attack rate of P on G
-    eC1 = 0.8   ##energy conversion -
-    eC2 = 0.8
-    eP = 0.8
+    ##Model parameters,
+    r1 = 2.0
+    r2 = 2.0
+    K1 = 1.5
+    K2 = 1.2
+    aR1_C1 = 0.9  ##attack rate  of consumer on R
+    aR2_C2 = 0.7
+    aR1_P = 0.7 ##attack rate of P on R 
+    aR2_P = 0.7
+    aC1_P = 1.2
+    aC2_P = 1.2  ##attack rate of P on C 
+    aG_P = 1.2  ##attack rate of P on G
+    eC1 = 0.8   ##energy conversion - of R1 by C1
+    eC2 = 0.6 ##energy conversion of R2 by C2
+    eP = 0.8 #energy conversion of C by P 
     mC1 = 1.0 ##C mortality rate
-    mC2 = 1.0
+    mC2 = 0.7
     mP = 0.5   ## P mortality rate
     hR1_C1 = 0.4 ##handling time of C on R
-    hR2_C2 = 0.4
+    hR2_C2 = 0.6
     hR1_P = 1.25  ##handling time of P on R  
-    hR2_P = 1.25
+    hR2_P = 1.5
     hC1_P = 1.25 ##handling time of P on C
-    hC2_P = 1.25
+    hC2_P = 1.5
     hG_P = 1.25 ##handling time of P on G
 
     ##Density dependent habitat preference function (simplifying for now to remove foraging scale)
@@ -294,7 +295,7 @@ end
     f_gp2::Function = f_GP_2
 
       ##temporal variation in R parameters
-   l1 = 2.0  #magnitude of variation in K of R1 
+   l1 = 3.0  #magnitude of variation in K of R1 
    l2 = 2.0  #magnitude of variation in K of R2
    pf = 10.0 ##period of fluctuation 
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
@@ -707,12 +708,12 @@ u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 
 tspan = (0.0, 200.0)
 G_pre = 2.0 
-G_pulse = G_pre*0.25
+G_pulse = G_pre
 t_pulse = 100.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 125.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.0, o = 0.0, H = 0.7, G_func = G_func)
+p = ModelPar_active(w = 0.2, o1 = 0.1, o2 = 0.1, H = 0.1, G_func = G_func, K1 = 1.0, K2 = 1.0)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
@@ -810,7 +811,7 @@ min_G     = minimum(fr_G)
 #P_fixed = 0.25
 #u0 = [1.5, 1.5, 1.0, 1.0, P_fixed]
 tspan = (0.0, 100.0)
-p = ModelPar_active(w = 0.1, o = 0.1, H = 0.9, K =7.5, pf = 10.0, D = 0.5)
+p = ModelPar_active(w = 0.2, o1 = 0.1, H = 0.1, K1 =7.5, pf = 10.0, D = 0.5)
 
 ##Define the ODE problem
 prob_2 = ODEProblem(rhs_forced, u0, tspan, p)

@@ -109,7 +109,7 @@ plot(df_cv_K.K, df_cv_K.cv_G, label = "G consumption", xlabel = "K", ylabel = "C
 results_o_f = []
 for o in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=0.0, o=o, H=0.3)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=0.2, o=o, H=0.1, K = 3.0)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_o_f, (; o, cv_nt...))  # NamedTuple splat into the row
 end
@@ -163,7 +163,7 @@ bar(
 results_w_f = []
 for w in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=w, o=0.0, H=0.3)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=w, o=0.1, H=0.1, K = 3.0)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_w_f, (; w, cv_nt...))  # NamedTuple splat into the row
 end
@@ -206,6 +206,51 @@ bar(
 )
 
 
+##do range of H next
+results_H_f = []
+for H in 0.0:0.1:1.0
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=0.2, o=0.1, H=H, K = 3.0)  # add other defaults as needed
+    cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_H_f, (; H, cv_nt...))  # NamedTuple splat into the row
+end
+df_cv_w = DataFrame(results_H_f)
+
+plot(df_cv_w.H, df_cv_w.cv_total, label = "total consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_R1, label = "R1 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_R2, label = "R2 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_C1, label = "C1 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_C2, label = "C2 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_G, label = "G consumption", xlabel = "H", ylabel = "CV")
+
+H_labels = string.(round.(df_cv_w.H, digits=1))
+
+bar(
+    H_labels, df_cv_w.cv_total;
+    xlabel = "H (grocery preference)",
+    ylabel = "CV of total harvest",
+    title  = "Total harvest CV across H",
+    legend = false,
+    bar_width = 0.8
+)
+
+bar(
+    H_labels, df_cv_w.mean_total;
+    xlabel = "H (grocery preference)",
+    ylabel = "Mean total harvest",
+    title  = "Mean Total harvest across H",
+    legend = false,
+    bar_width = 0.8
+)
+
+bar(
+    H_labels, df_cv_w.sd_total;
+    xlabel = "H (grocery preference)",
+    ylabel = "SD total harvest",
+    title  = "SD Total harvest across H",
+    legend = false,
+    bar_width = 0.8
+)
 
 
 
@@ -216,7 +261,7 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(w=w, o=o, H=0.3)  # set/adjust other params as you need
+    pᵢ = ModelPar_active(w=w, o=o, H=0.1, l = 1.0, D = 0.5)  # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
 end

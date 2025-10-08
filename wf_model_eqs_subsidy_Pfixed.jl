@@ -694,17 +694,17 @@ end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
-tspan = (0.0, 3000.0)
+tspan = (0.0, 400.0)
 G_pre = 2.0 
-G_pulse = G_pre
-t_pulse = 100.0 ##time when disturbance occurs, want to be once model at equilibirum
-t_recover = 125.0 ##time when decline in resources ends 
+G_pulse = G_pre*0.25
+t_pulse = 200.0 ##time when disturbance occurs, want to be once model at equilibirum
+t_recover = 250.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K = 4.0, l = 1.0)
+p = ModelPar_active(w = 0.5, o = 0.1, H = 0.9, K = 3.25, l = 1.0, D = 0.5, G_func = G_func, e = 0.8)
 
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
 ##also this ODE solver is working, why in function am i then getting NAs/Infs in matrix? 

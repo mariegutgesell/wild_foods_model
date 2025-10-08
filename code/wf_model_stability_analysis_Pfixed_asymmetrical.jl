@@ -1,46 +1,21 @@
-##Looking at stability across gradient of coupling and omnivory 
+##Looking at stability across parameter space -- P fixed, asymmetry across energy channels
 
 ##source model 
-#include("wf_model_eqs_subsidy.jl")
-
-include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P constant/or not (depending on which equation on model structure is silenced), unique parameters per trophic level, active and passive omnivory parameter structures
-##WHERE LEFT OFF (JULY 3): trying to understand if dynamics from simpler to more complex model match what i would expect based on theory - working through this
+include("wf_model_eqs_subsidy_Pfixed_asymmetrical.jl") 
 
 
 ##1) Looking at local stability for unforced model to see changes w/ increasing K
-p = ModelPar_passive(w = 0.5, o = 0.0, H = 0.0)
-#P_fixed = 0.25
-K_results = equilibrium_forced(p, P0)
-
-results_K_all_uf = []
-#P_fixed = 0.25
-for K in 0.1:0.1:6.5
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
+results_K1_all_uf = []
+for K1 in 0.1:0.1:6.5
+    p = ModelPar_active(w = 0.2, o1 = 0.1, o2 = 0.1, H = 0.1, K1=K1, K2 = K1)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
-    push!(results_K_all_uf, (; K=K, eq_data...))
+    push!(results_K1_all_uf, (; K1=K1, K2 = K1, eq_data...))
 end
-df_eq = DataFrame(results_K_all_uf)
-##in unforced model, getting inf/NAs when K = 7.3, 9.2, 8.9, 7.4 - when evaluating at t = 100
-##in unforced model, getting inf/NAs when K = 0.1-0.7, 7.3, 8.0, 9.0 
-##if getting different K values when evaluating at different time points, i think not at equilibrium at t = 100? 
+df_eq = DataFrame(results_K1_all_uf)
 
-##at k = 1.6, finally get persistence of C1 
-##at k = 2.0, get persistence of C2 as well -- and monotonic approaches to equilibrium
-##at k = 3.0 and 3.1 start to get tiny wiggles -- potentially still part of transient? could be really long .. 
-##when go over 100,000 time steps, still getting same pattern -- not stable limit cycles but does look potentially like it is repeating itself.. 
-##then at 3.2 wiggles seem to disappear again 
-##then 3.3 get tiny starts of potential oscillations, and slight oscillatory decay
-##that does make sense, because that is at bottom of checkmark when start to get imaginary part (i think)
-##but it isn't going to a straight stable equilibrium .. well R2 and C2 do, but R1 and C1 don't
-##looks like at about 3.9/4 thats when start to get some oscillation in R2/C2
-##at k = 5, getting stable limit cycles (i think) -- plot the max/mins after this to see if getting bifurcation 
-##at k-5.2 start to get much larger oscillations -- 
-##at 6.2 start to get different dynamics at later time periods, so definitely not in a stable oscillation -- 
-##woah yea crazy shit going on -- longer wild cycles 
-##at k = 7 start to not get repeating patterns 
 
-plot(df_eq.K, df_eq.λ1, xlabel = "K", ylabel = "max eigenvalue")
+plot(df_eq.K1, df_eq.λ1, xlabel = "K1", ylabel = "max eigenvalue")
 ##why do the eigenvalues go crazy like that? - outside of numerical realm or something.. 
 
 
