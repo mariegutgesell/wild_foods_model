@@ -108,8 +108,8 @@ plot(df_cv_K.K, df_cv_K.cv_G, label = "G consumption", xlabel = "K", ylabel = "C
 
 results_o_f = []
 for o in 0.0:0.1:1.0
-    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=0.2, o=o, H=0.1, K = 3.0)  # add other defaults as needed
+    u0 = [5.0, 4.0, 3.0, 2.0, 0.25]
+    pᵢ = ModelPar_active(w=0.5, o=o, H=0.5, K = 3.0)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_o_f, (; o, cv_nt...))  # NamedTuple splat into the row
 end
@@ -163,7 +163,7 @@ bar(
 results_w_f = []
 for w in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=w, o=0.1, H=0.1, K = 3.0)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=w, o=0.5, H=0.5, K = 3.0)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_w_f, (; w, cv_nt...))  # NamedTuple splat into the row
 end
@@ -210,7 +210,7 @@ bar(
 results_H_f = []
 for H in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=0.2, o=0.1, H=H, K = 3.0)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=0.5, o=0.5, H=H, K = 3.0)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_H_f, (; H, cv_nt...))  # NamedTuple splat into the row
 end
@@ -261,7 +261,7 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(w=w, o=o, H=0.1, l = 1.0, D = 0.5)  # set/adjust other params as you need
+    pᵢ = ModelPar_active(w=w, o=o, H=0.9, l = 1.0, D = 0.5)  # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
 end

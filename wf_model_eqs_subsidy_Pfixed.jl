@@ -578,6 +578,29 @@ dt = step(t_eig)
 end 
 
 
+##trying my own equilibrium function, that follows structure similar to KC 
+##other functions for eigenvalue analysis - based on KC code
+find_eq(u, p) = nlsolve((du, u) -> model_unforced!(du, u, p, zero(u)), u).zero
+cmat(u, p) = ForwardDiff.jacobian(x -> rhs_unforced(x, p), u)
+
+
+"""M is the community matrix, we can be calculated with `cmat(u, p)`"""
+λ1_stability(M) = maximum(real.(eigvals(M)))
+
+"""M is the community matrix, we can be calculated with `cmat(u, p)`"""
+function λ1_stability_imag(M) 
+    ev = eigvals(M)
+    imag.(ev)[findall(real.(ev) .== maximum(real.(ev)))[1]]
+end 
+
+
+"""M is the community matrix, we can be calculated with `cmat(u, p)`
+Note: `\nu` is the what to input `ν` which looks a bit too much like `v` for my taste
+"""
+ν_stability(M) = λ1_stability((M + M') / 2)
+
+
+
 function equilibrium_unforced(p, P0)
     u0 = [1.5, 1.5, 1.0, 1.0, P0] ##initial condition
     t_warmup = 300.0 ##run long enough to reach the equilibrium/limit cycle 
@@ -696,12 +719,12 @@ u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 
 tspan = (0.0, 400.0)
 G_pre = 2.0 
-G_pulse = G_pre*0.25
+G_pulse = G_pre
 t_pulse = 200.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 250.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.5, o = 0.1, H = 0.9, K = 3.25, l = 1.0, D = 0.5, G_func = G_func, e = 0.8)
+p = ModelPar_active(w = 0.5, o = 0.0, H = 0.5, l = 1.0, D = 0.5, G_func = G_func)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)

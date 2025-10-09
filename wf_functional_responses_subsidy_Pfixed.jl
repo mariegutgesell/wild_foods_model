@@ -144,16 +144,61 @@ p = ModelPar_active()
 
 ##Plot P functional response across range of R1, holding all other variables constant
 R1_vals = range(0, 15, length = 10)
-response_vals = [f_R1P((R1, 1.0, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+R2_vals = range(0, 15, length = 10)
+C1_vals = range(0, 15, length = 10)
+C2_vals = range(0, 15, length = 10)
 
-plot(R1_vals, response_vals,
+response_vals_R1 = [f_R1P((R1, R1, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+plot(R1_vals, response_vals_R1,
 xlabel = "R1 Density", ylabel = "Predator Consumption Rate of R1", title = "Functional Response to R1")
 
-#Plot C functional response across range of R1, holding all other variables constant
-response_vals_C1 = [f_R1C1((R1, 1.0, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+response_vals_R1_R2 = [f_R1P((R1, R2, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals, R2 in R2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, R2_vals, response_vals_R1_R2;
+    xlabel = "R1 density",
+    ylabel = "R2 density",
+    title  = "f_R1P across R1–R2",
+    colorbar_title = "Predator consumption of R1"
+)
 
-plot(R1_vals, response_vals_C1,
-xlabel = "R1 Density", ylabel = "C1 Consumption Rate of R1", title = "C1 Functional Response to R1")
+response_vals_R1_C1 = [f_R1P((R1, 1.0, C1, 1.0, 0.25), p, 0.0) for R1 in R1_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, C1_vals, response_vals_R1_C1;
+    xlabel = "R1 density",
+    ylabel = "C1 density",
+    title  = "f_R1P across R1–C1",
+    colorbar_title = "Predator consumption of R1"
+)
+
+response_vals_R2_C1 = [f_R1P((1.0, R2, C1, 1.0, 0.25), p, 0.0) for R2 in R2_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C1_vals, response_vals_R2_C1;
+    xlabel = "R2 density",
+    ylabel = "C1 density",
+    title  = "f_R1P across R2-C1",
+    colorbar_title = "Predator consumption of R1"
+)
+
+response_vals_R2_C2 = [f_R1P((1.0, R2, 1.0, C2, 0.25), p, 0.0) for R2 in R2_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C2_vals, response_vals_R2_C2;
+    xlabel = "R2 density",
+    ylabel = "C2 density",
+    title  = "f_R1P across R2-C2",
+    colorbar_title = "Predator consumption of R1"
+)
+
+response_vals_C1_C2 = [f_R1P((1.0, 1.0, C1, C2, 0.25), p, 0.0) for C1 in C1_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    C1_vals, C2_vals, response_vals_C1_C2;
+    xlabel = "C1 density",
+    ylabel = "C2 density",
+    title  = "f_R1P across C1-C2",
+    colorbar_title = "Predator consumption of R1"
+)
+
+
+
 
 ##Plot P functional response across range of R2, holding all other variables constant
 R2_vals = range(0, 10, length = 10)
@@ -162,22 +207,161 @@ response_vals_R2 = [f_R2P((1.0, R2, 1.0, 1.0, 0.5), p, 0.0) for R2 in R2_vals] #
 plot(R2_vals, response_vals_R2,
 xlabel = "R2 Density", ylabel = "Predator Consumption Rate of R2", title = "Functional Response to R2")
 
+response_vals_R1_R2 = [f_R2P((R1, R2, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals, R2 in R2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, R2_vals, response_vals_R1_R2;
+    xlabel = "R1 density",
+    ylabel = "R2 density",
+    title  = "f_R2P across R1–R2",
+    colorbar_title = "Predator consumption of R2"
+)
+
+response_vals_R1_C1 = [f_R2P((R1, 1.0, C1, 1.0, 0.25), p, 0.0) for R1 in R1_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, C1_vals, response_vals_R1_C1;
+    xlabel = "R1 density",
+    ylabel = "C1 density",
+    title  = "f_R2P across R1–C1",
+    colorbar_title = "Predator consumption of R2"
+)
+
+response_vals_R2_C1 = [f_R2P((1.0, R2, C1, 1.0, 0.25), p, 0.0) for R2 in R2_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C1_vals, response_vals_R2_C1;
+    xlabel = "R2 density",
+    ylabel = "C1 density",
+    title  = "f_R2P across R2-C1",
+    colorbar_title = "Predator consumption of R2"
+)
+
+response_vals_R2_C2 = [f_R2P((1.0, R2, 1.0, C2, 0.25), p, 0.0) for R2 in R2_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C2_vals, response_vals_R2_C2;
+    xlabel = "R2 density",
+    ylabel = "C2 density",
+    title  = "f_R2P across R2-C2",
+    colorbar_title = "Predator consumption of R2"
+)
+
+response_vals_C1_C2 = [f_R2P((1.0, 1.0, C1, C2, 0.25), p, 0.0) for C1 in C1_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    C1_vals, C2_vals, response_vals_C1_C2;
+    xlabel = "C1 density",
+    ylabel = "C2 density",
+    title  = "f_R2P across C1-C2",
+    colorbar_title = "Predator consumption of R2"
+)
+
+
 
 ##Plot P functional response across range of R1, holding all other variables constant
-C1_vals = range(0, 10, length = 10)
+#C1_vals = range(0, 10, length = 10)
 response_vals_C1 = [f_C1P((1.0, 1.0, C1, 1.0, 0.25), p, 0.0) for C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 
 plot(C1_vals, response_vals_C1,
 xlabel = "C1 Density", ylabel = "Predator Consumption Rate of C1", title = "Functional Response to C1")
 
+response_vals_R1_R2 = [f_C1P((R1, R2, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals, R2 in R2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, R2_vals, response_vals_R1_R2;
+    xlabel = "R1 density",
+    ylabel = "R2 density",
+    title  = "f_C1P across R1–R2",
+    colorbar_title = "Predator consumption of C1"
+)
+
+response_vals_R1_C1 = [f_C1P((R1, 1.0, C1, 1.0, 0.25), p, 0.0) for R1 in R1_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, C1_vals, response_vals_R1_C1;
+    xlabel = "R1 density",
+    ylabel = "C1 density",
+    title  = "f_C1P across R1–C1",
+    colorbar_title = "Predator consumption of C1"
+)
+
+response_vals_R2_C1 = [f_C1P((1.0, R2, C1, 1.0, 0.25), p, 0.0) for R2 in R2_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C1_vals, response_vals_R2_C1;
+    xlabel = "R2 density",
+    ylabel = "C1 density",
+    title  = "f_C1P across R2-C1",
+    colorbar_title = "Predator consumption of C1"
+)
+
+response_vals_R2_C2 = [f_C1P((1.0, R2, 1.0, C2, 0.25), p, 0.0) for R2 in R2_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C2_vals, response_vals_R2_C2;
+    xlabel = "R2 density",
+    ylabel = "C2 density",
+    title  = "f_C1P across R2-C2",
+    colorbar_title = "Predator consumption of C1"
+)
+
+response_vals_C1_C2 = [f_C1P((1.0, 1.0, C1, C2, 0.25), p, 0.0) for C1 in C1_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    C1_vals, C2_vals, response_vals_C1_C2;
+    xlabel = "C1 density",
+    ylabel = "C2 density",
+    title  = "f_C1P across C1-C2",
+    colorbar_title = "Predator consumption of C1"
+)
+
+
 
 
 ##Plot P functional response across range of C2, holding all other variables constant
-C2_vals = range(0, 10, length = 10)
+#C2_vals = range(0, 10, length = 10)
 response_vals_C2 = [f_C2P((1.0, 1.0, 1.0, C2, 0.25), p, 0.0) for C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 
 plot(C2_vals, response_vals_C2,
 xlabel = "C2 Density", ylabel = "Predator Consumption Rate of C2", title = "Functional Response to C2")
+
+response_vals_R1_R2 = [f_C2P((R1, R2, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals, R2 in R2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, R2_vals, response_vals_R1_R2;
+    xlabel = "R1 density",
+    ylabel = "R2 density",
+    title  = "f_C2P across R1–R2",
+    colorbar_title = "Predator consumption of C2"
+)
+
+response_vals_R1_C1 = [f_C2P((R1, 1.0, C1, 1.0, 0.25), p, 0.0) for R1 in R1_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R1_vals, C1_vals, response_vals_R1_C1;
+    xlabel = "R1 density",
+    ylabel = "C1 density",
+    title  = "f_C2P across R1–C1",
+    colorbar_title = "Predator consumption of C2"
+)
+
+response_vals_R2_C1 = [f_C2P((1.0, R2, C1, 1.0, 0.25), p, 0.0) for R2 in R2_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C1_vals, response_vals_R2_C1;
+    xlabel = "R2 density",
+    ylabel = "C1 density",
+    title  = "f_C2P across R2-C1",
+    colorbar_title = "Predator consumption of C2"
+)
+
+response_vals_R2_C2 = [f_C2P((1.0, R2, 1.0, C2, 0.25), p, 0.0) for R2 in R2_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    R2_vals, C2_vals, response_vals_R2_C2;
+    xlabel = "R2 density",
+    ylabel = "C2 density",
+    title  = "f_C2P across R2-C2",
+    colorbar_title = "Predator consumption of C2"
+)
+
+response_vals_C1_C2 = [f_C2P((1.0, 1.0, C1, C2, 0.25), p, 0.0) for C1 in C1_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+surface(
+    C1_vals, C2_vals, response_vals_C1_C2;
+    xlabel = "C1 density",
+    ylabel = "C2 density",
+    title  = "f_C2P across C1-C2",
+    colorbar_title = "Predator consumption of C2"
+)
+
+
 
 ##Plot P functional response across range of G, holding all other variables constant
 G_vals = range(0, 10, length = 10)
