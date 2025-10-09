@@ -237,11 +237,11 @@ G_func(t) = (t < t_pulse || t ≥ t_recover) ? G_pre : G_pulse
 end
 
 #Set up paramters - 
-@with_kw mutable struct ModelPar_active
-    w = 0.2   ##w = habitat preference for patch i 
-    o1 = 0.2 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
-    o2 = 0.2
-    H = 0.1 ##H = preference for groceries (G)
+@with_kw mutable struct ModelPar_active ##model parameters come from Ward et al., 2025, but added some asymmetry so habitat 1 is. slightly faster
+    w = 0.5  ##w = habitat preference for patch i 
+    o1 = 0.5 ##o = omnivory preference, preference for either consumer or resource, starting with fixed omnivory preference (essentially passive case)
+    o2 = 0.5
+    H = 0.5 ##H = preference for groceries (G)
 
     ##Model parameters,
     r1 = 2.0
@@ -257,17 +257,17 @@ end
     aG_P = 1.2  ##attack rate of P on G
     eC1 = 0.8   ##energy conversion - of R1 by C1
     eC2 = 0.6 ##energy conversion of R2 by C2
-    eP = 0.8 #energy conversion of C by P 
-    mC1 = 1.0 ##C mortality rate
-    mC2 = 0.7
+    eP = 0.8 #energy conversion of C by P (for now same for both C1 and C2, and i think this doesn't really matter if holding P constant .. )
+    mC1 = 0.3 ##C mortality rate
+    mC2 = 0.3
     mP = 0.5   ## P mortality rate
-    hR1_C1 = 0.4 ##handling time of C on R
+    hR1_C1 = 0.6 ##handling time of C on R
     hR2_C2 = 0.6
-    hR1_P = 1.25  ##handling time of P on R  
-    hR2_P = 1.5
-    hC1_P = 1.25 ##handling time of P on C
-    hC2_P = 1.5
-    hG_P = 1.25 ##handling time of P on G
+    hR1_P = 0.6  ##handling time of P on R  
+    hR2_P = 0.6
+    hC1_P = 0.6 ##handling time of P on C
+    hC2_P = 0.6
+    hG_P = 0.6 ##handling time of P on G
 
     ##Density dependent habitat preference function (simplifying for now to remove foraging scale)
     W::Function = hab_pref
@@ -295,8 +295,8 @@ end
     f_gp2::Function = f_GP_2
 
       ##temporal variation in R parameters
-   l1 = 3.0  #magnitude of variation in K of R1 
-   l2 = 2.0  #magnitude of variation in K of R2
+   l1 = 1.0  #magnitude of variation in K of R1 
+   l2 = 1.0  #magnitude of variation in K of R2
    pf = 10.0 ##period of fluctuation 
    D = 0.5 ##phase delay between K1 and K2 (0.5 = perfectly asynchronous)
     e1::Function = t -> sin(2π / pf * t)
@@ -706,14 +706,14 @@ end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
-tspan = (0.0, 200.0)
+tspan = (0.0, 500.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 100.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 125.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.2, o1 = 0.1, o2 = 0.1, H = 0.1, G_func = G_func, K1 = 1.0, K2 = 1.0)
+p = ModelPar_active(w = 0.5, o1 = 0.5, o2 = 0.5, H = 0.5, G_func = G_func, K1 = 3.5, K2 = 3.5)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
