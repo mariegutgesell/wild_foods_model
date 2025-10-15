@@ -151,7 +151,7 @@ end
 u0 = [3.0, 1.5]
 tspan = (0.0, 500.0)
 ##set Parameters
-p = ModelPar_test_1(K = 8.0, aR_C = 0.8, Z = 0.0, Y = 0.3)
+p = ModelPar_test_1(K = 4.0, aR_C = 1.7, Z = 0.0, Y = 0.0)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
@@ -215,6 +215,9 @@ plot!(df_eq.aR_C, R1_max, label = "R1 max")
 
 plot(df_eq.aR_C, C_min, col = "red", label = "C min", xlabel = "aR_C", ylabel ="min/max")
 plot!(df_eq.aR_C, C_max, col = "red", label = "C max")
+
+
+
 
 
 ##over range of e
@@ -306,6 +309,7 @@ for Y in 0.0:0.1:1.5
     eq_data = equilibrium_unforced(p, t)
     push!(results_Y_all, (; Y=Y, eq_data...))
 end
+
 df_eq = DataFrame(results_Y_all)
 
 plot(df_eq.Y, df_eq.λ1)
@@ -327,7 +331,45 @@ plot!(df_eq.Y, C_max, col = "red", label = "C max")
 
 
 
-##Looking at both Y and Z 
+##Looking at both K and Z
+results_Z_K_all_uf = []
+for K in 3.0:0.5:8.0,  Z in 0.0:0.1:1.0
+    p = ModelPar_test_1(Z = Z,  K = K, aR_C = 1.5)
+    t = 100
+    eq_data = equilibrium_unforced(p, t)
+    push!(results_Z_K_all_uf, (; Z = Z, K = K, eq_data...))
+end
+df_eq = DataFrame(results_Z_K_all_uf)
+print(df_eq)
+# Get unique values
+Z_vals = unique(df_eq.Z)
+K_vals = unique(df_eq.K)
+
+# Sort them to be safe
+sort!(Z_vals)
+sort!(K_vals)
+
+# Create matrix for λmax
+λ1_mat = [df_eq[(df_eq.Z .== Z) .& (df_eq.K .== K), :λ1][1] for Z in Z_vals, K in K_vals]
+
+# Plot heatmap
+heatmap(Z_vals,K_vals, λ1_mat;
+        xlabel = "Consumer constant harvest (Z)",
+        ylabel = "K",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
+
+surface(Z_vals, K_vals, λ1_mat;
+        xlabel = "Consumer constant harvest (Z)",
+        ylabel = "K",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
+
+
+
+#Looking at Y and Z        
 results_Z_Y_all_uf = []
 for Z in 0.0:0.1:0.75,  Y in 0.0:0.1:0.75
     p = ModelPar_test_1(Z = Z, Y = Y, K = 7.0)
@@ -359,6 +401,45 @@ heatmap(Z_vals, Y_vals, λ1_mat;
 surface(Z_vals, Y_vals, λ1_mat;
         xlabel = "Consumer constant harvest (Z)",
         ylabel = "Resource constant harvest (Y)",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis) 
+
+
+##Looking at both K and Z
+Ks    = range(3.0, stop=8.0, length=11)
+aR_Cs = range(0.1, stop=3.0, length=11)
+results_a_K_all_uf = []
+for K in Ks, aR_C in aR_Cs
+    p = ModelPar_test_1(K = K, aR_C = aR_C)
+    t = 100
+    eq_data = equilibrium_unforced(p, t)
+    push!(results_a_K_all_uf, (;  K ,aR_C, eq_data...))
+end
+df_eq = DataFrame(results_a_K_all_uf)
+print(df_eq)
+# Get unique values
+a_vals = unique(df_eq.aR_C)
+K_vals = unique(df_eq.K)
+
+# Sort them to be safe
+sort!(a_vals)
+sort!(K_vals)
+
+# Create matrix for λmax
+λ1_mat = [df_eq[(df_eq.aR_C .== aR_C) .& (df_eq.K .== K), :λ1][1] for aR_C in a_vals, K in K_vals]
+
+# Plot heatmap
+heatmap(a_vals,K_vals, λ1_mat;
+        xlabel = "aR_C",
+        ylabel = "K",
+        title = "Max Real Eigenvalue (λmax)",
+        colorbar_title = "λmax",
+        c = :viridis)
+
+surface(a_vals, K_vals, λ1_mat;
+        xlabel = "aRC",
+        ylabel = "K",
         title = "Max Real Eigenvalue (λmax)",
         colorbar_title = "λmax",
         c = :viridis)

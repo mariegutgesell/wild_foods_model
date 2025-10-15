@@ -5,77 +5,6 @@
 
 include("wf_model_eqs_subsidy_Pfixed.jl")
 
-# ---- CV helper ----
-cv(x) = mean(x) == 0 ? NaN : (std(x) / mean(x))
-
-# ---- run, sample post-warmup, compute FR_into_P series + CVs ----
-function fr_cv_unforced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
-    tspan = (0.0, t_eval)
-    prob  = ODEProblem(model_unforced!, u0, tspan, deepcopy(p))
-    sol   = solve(prob; reltol=1e-8, abstol=1e-8)
-
-    t_grid  = range(t_warmup, t_eval; length=ngrid)
-    us      = sol.(t_grid)
-
-    # time series of fluxes into P
-    fr_total = Float64[]; fr_R1 = Float64[]; fr_R2 = Float64[]
-    fr_C1 = Float64[];    fr_C2 = Float64[]; fr_G  = Float64[]
-
-    for (u, t) in zip(us, t_grid)
-        tot, r1, r2, c1, c2, g = total_FR_into_P(u, p, t)
-        push!(fr_total, tot); push!(fr_R1, r1); push!(fr_R2, r2)
-        push!(fr_C1, c1);     push!(fr_C2, c2); push!(fr_G,  g)
-    end
-
-    return (; 
-        cv_total = cv(fr_total),
-        cv_R1    = cv(fr_R1),
-        cv_R2    = cv(fr_R2),
-        cv_C1    = cv(fr_C1),
-        cv_C2    = cv(fr_C2),
-        cv_G     = cv(fr_G)
-    )
-end
-
-function fr_cv_forced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
-    tspan = (0.0, t_eval)
-    prob  = ODEProblem(model_forced!, u0, tspan, deepcopy(p))
-    sol   = solve(prob; reltol=1e-8, abstol=1e-8)
-
-    t_grid  = range(t_warmup, t_eval; length=ngrid)
-    us      = sol.(t_grid)
-
-    # time series of fluxes into P
-    fr_total = Float64[]; fr_R1 = Float64[]; fr_R2 = Float64[]
-    fr_C1 = Float64[];    fr_C2 = Float64[]; fr_G  = Float64[]
-
-    for (u, t) in zip(us, t_grid)
-        tot, r1, r2, c1, c2, g = total_FR_into_P(u, p, t)
-        push!(fr_total, tot); push!(fr_R1, r1); push!(fr_R2, r2)
-        push!(fr_C1, c1);     push!(fr_C2, c2); push!(fr_G,  g)
-    end
-
-    return (; 
-        cv_total = cv(fr_total),
-        cv_R1    = cv(fr_R1),
-        cv_R2    = cv(fr_R2),
-        cv_C1    = cv(fr_C1),
-        cv_C2    = cv(fr_C2),
-        cv_G     = cv(fr_G),
-        mean_total = mean(fr_total),
-        mean_R1 = mean(fr_R1),
-        mean_R2 = mean(fr_R2),
-        mean_C1 = mean(fr_C1),
-        mean_C2 = mean(fr_C2),
-        mean_G = mean(fr_G),
-        sd_total = std(fr_total),
-        sd_R1 = std(fr_R1),
-        sd_R2 = std(fr_R2),
-        sd_C1 = std(fr_C1),
-        sd_C2 = std(fr_C2),
-        sd_G = std(fr_G),
-    )
-end
 
 
 ##Look at across range of parameters
@@ -261,7 +190,8 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(w=w, o=o, H=0.9, l = 1.0, D = 0.5)  # set/adjust other params as you need
+    pᵢ = ModelPar_active(o = o, w = w, H = 0.1, r = 2.0, K = 3.0, aR_C = 0.9, aR_P = 0.9, aC_P = 0.9, aG_P = 1.2, hR_P = 0.6, hR_C = 0.6, hC_P = 0.6, hG_P = 0.6, e = 0.7, mC = 0.3, G = 2.0)
+ # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
 end

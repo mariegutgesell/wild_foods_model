@@ -16,8 +16,8 @@ using Random
 using StatsPlots
 
 ##source model - choose which based on which you want to investigate
-include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
-
+#include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
+include("wf_model_harvest_rate_analysis.jl")
 ##not sure if need to redefine model_par, i think may be okay to call from my wf_model code 
 
 # --- Bounds: focal vs nuisance ---
@@ -95,17 +95,17 @@ o_grid = range(bounds[:o]...; length=11)
 w_grid = range(bounds[:w]...; length=11)
 H_grid = range(bounds[:H]...; length=11)
 
-Nrep = 1  # random nuisance samples per grid point (tune)
+Nrep = 2  # random nuisance samples per grid point (tune)
 
 # Pre-sample nuisance once to reuse (or sample per cell if you prefer)
 rng = MersenneTwister(42)
 nuisance_pool = sample_nuisance(Nrep; rng)
 
 # Allocate result arrays: (|o|, |w|, |H|)
-CV_med = Array{Float64}(undef, length(o_grid), length(w_grid), length(H_grid))
-CV_iqr = similar(CV_med)
-stab_med = similar(CV_med)
-stab_iqr = similar(CV_med)
+#CV_med = Array{Float64}(undef, length(o_grid), length(w_grid), length(H_grid))
+#CV_iqr = similar(CV_med)
+#stab_med = similar(CV_med)
+#stab_iqr = similar(CV_med)
 
 # Build parameter from focal + nuisance sample
 const p0 = ModelPar_active()
@@ -126,89 +126,84 @@ runs_stab = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in
 @info "Running robustness grid..."
 for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
     P0 = 0.25
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
     stability_df = NamedTuple[]
     for s in nuisance_pool
         p = make_par(o, w, H, s)
         try
-            out = equilibrium_unforced(p, P0)  # e.g. returns (cv=..., λ1=..., ...)
+            out_1 = equilibrium_unforced(p, P0)  # e.g. returns (cv=..., λ1=..., ...)
+            out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)  # e.g. returns (cv=..., λ1=..., ...)
             # Store the full parameter set + outputs in one record
-            rec = (; o, w, H, s..., cvC1 = out.cv[3], λ1 = out.λ1)
+            rec = (; o, w, H, s..., C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],λ1 = out_1.λ1,R1_eq = out_1.eq[1], R2_eq = out_1.eq[2],
+            C1_eq = out_1.eq[3], C2_eq = out_1.eq[4], cv_total = out_2.cv_total, cv_R1 = out_2.cv_R1, cv_R2 = out_2.cv_R2, cv_C1 = out_2.cv_C1,cv_C2 = out_2.cv_C2,cv_G = out_2.cv_G)
             push!(stability_df, rec)
             push!(runs_stab[io,iw,iH], rec)
         catch err
             @warn "Fail at (o=$o, w=$w, H=$H): $err"
         end
     end
-
-    # summarize
-    cvC1 = getindex.(stability_df, :cvC1)
-    lam1 = getindex.(stability_df, :λ1)
-
-    good = .!(isnan.(cvC1) .| isinf.(cvC1) .| isnan.(lam1) .| isinf.(lam1))
-    cvC1 = cvC1[good]; lam1 = lam1[good]
-
-   # CV_med[io,iw,iH]  = median(cvC1)
-   # CV_iqr[io,iw,iH]  = quantile(cvC1, 0.75) - quantile(cvC1, 0.25)
-   # stab_med[io,iw,iH] = median(lam1)
-   # stab_iqr[io,iw,iH] = quantile(lam1, 0.75) - quantile(lam1, 0.25)
 end
 @info "Done."
 
 cell = runs_stab[1,1,1]
 cell[2]
-print(CV_med)
 
-k = round(Int, 11)
-heatmap(o_grid, w_grid, (cvC1[:, :, k])',
-        xlabel="o", ylabel="w", colorbar_title="CV C1",
-        title="cvC1 eigenvalue at H=$(round(H_grid[k],digits=2))")
+##filter out only stable coexistence (i.e., where there is some persistence of all species at equilibrium)
+eps = 1e-8
+No, Nw, NH = length(o_grid), length(w_grid), length(H_grid)
+predicate = r -> (r.R1_min >eps && r.R2_min > eps && r.C1_min > eps && r.C2_min > eps)
+final_runs = [ filter(predicate, runs_stab[i,j,k])
+                       for i in 1:No, j in 1:Nw, k in 1:NH ]
+print(final_runs)
+
+
+
 
 ##See if I can extract cv/eigenvalue from all possible combinations for each set of nuisance parameters
-N_nuisance = length(runs_stab[1,1,1])
-same_nuisance_results = [ [runs_stab[i,j,k][n] for i in 1:length(o_grid),
+N_nuisance = length(final_runs[1,1,1])
+same_nuisance_results = [ [final_runs[i,j,k][n] for i in 1:length(o_grid),
                                          j in 1:length(w_grid),
                                          k in 1:length(H_grid)]
                           for n in 1:N_nuisance ]
 
 ##Seeing if I can plot cv for a single nuisance Draw
 n = 1 ##this is the nuisance draws
-kH = 10 ##this is the slice of K 
+kH = 1 ##this is the slice of K 
 
 ##extract the data for that draw 
 res_n = same_nuisance_results[n]
 
 ##turn it back into a matrix over oxw for that fixed H 
 No, Nw, NH = length(o_grid), length(w_grid), length(H_grid)
-CV = [res_n[(i-1)*Nw*NH + (j-1)*NH + kH].cvC1 for j in 1:Nw, i in 1:No]
-
-##now Plot 
-heatmap(o_grid, w_grid, CV; xlabel = "o", ylabel = "w", title = "CV for nuisance draw $n at H=$(H_grid[kH])", colorbar_title = "CV of C1")
-
 
 ##eigenvalue 
 eig = [res_n[(i-1)*Nw*NH + (j-1)*NH + kH].λ1 for j in 1:Nw, i in 1:No]
 ##now Plot 
 heatmap(o_grid, w_grid, eig; xlabel = "o", ylabel = "w", title = "Max eigenvalue for nuisance draw $n at H=$(H_grid[kH])", colorbar_title = "max eigenvalue")
 
+cv_total_h = [res_n[(i-1)*Nw*NH + (j-1)*NH + kH].cv_total for j in 1:Nw, i in 1:No]
+##now Plot 
+heatmap(o_grid, w_grid, cv_total_h; xlabel = "o", ylabel = "w", title = "CV of total harvest for nuisance draw $n at H=$(H_grid[kH])", colorbar_title = "cv total harvest")
+
 
 
 ##Create grid of CV and eigenvalue responses for all combinations 
-R = length(runs_stab[1,1,1])  # number of nuisance runs per cell (10)
+R = length(final_runs[1,1,1])  # number of nuisance runs per cell (10)
 
 cv_grid = Array{Float64}(undef, length(o_grid), length(w_grid), length(H_grid), R)
 lam_grid = similar(cv_grid)
 
 for io in eachindex(o_grid), iw in eachindex(w_grid), iH in eachindex(H_grid)
-    cell = runs_stab[io, iw, iH]            # Vector{NamedTuple}
+    cell = final_runs[io, iw, iH]            # Vector{NamedTuple}
     @assert length(cell) == R "Unequal runs per cell at ($io,$iw,$iH)"
     for ir in 1:R
-        cv_grid[io,iw,iH,ir]  = cell[ir].cvC1
+        cv_grid[io,iw,iH,ir]  = cell[ir].cv_total
         lam_grid[io,iw,iH,ir] = cell[ir].λ1
     end
 end
 
-cell = runs_stab[1,2,1]
-@assert cv_grid[1,1,1,1] == cell[1].cvC1
+cell = final_runs[1,2,1]
+@assert cv_grid[1,1,1,1] == cell[1].cv_total
 @assert lam_grid[1,1,1,1] == cell[1].λ1
 
 @show cv_grid[1,1,1,2]
@@ -216,43 +211,43 @@ cell = runs_stab[1,2,1]
 rows = NamedTuple[]
 for io in eachindex(o_grid), iw in eachindex(w_grid), iH in eachindex(H_grid), ir in 1:R
     push!(rows, (; o=o_grid[io], w=w_grid[iw], H=H_grid[iH],
-                  cvC1=cv_grid[io,iw,iH,ir], λ1=lam_grid[io,iw,iH,ir],
+                  cv_total=cv_grid[io,iw,iH,ir], λ1=lam_grid[io,iw,iH,ir],
                   irun=ir))
 end
 df_all = DataFrame(rows)
 
 
-cv_no_na = filter!(r -> isfinite(r.cvC1), df_all)
+#cv_no_na = filter!(r -> isfinite(r.cv_total), df_all)
 
-@df cv_no_na boxplot(string.(:o), :cvC1;
+@df df_all boxplot(string.(:o), :cv_total;
                      xlabel = "o",
-                     ylabel = "CV(C1)",
-                     title = "CV(C1) across all nuisance runs",
+                     ylabel = "CV total harvest",
+                     title = "CV total harvest across all nuisance runs",
                      fillalpha = 0.5,
                      legend = false,
                      linewidth = 0.8,
                      whisker_width = 0.6)
 
-@df cv_no_na boxplot(string.(:w), :cvC1;
+@df df_all boxplot(string.(:w), :cv_total;
                      xlabel = "w",
-                     ylabel = "CV(C1)",
-                     title = "CV(C1) across all nuisance runs",
+                     ylabel = "CV total harvest",
+                     title = "CV total harvest across all nuisance runs",
                      fillalpha = 0.5,
                      legend = false,
                      linewidth = 0.8,
                      whisker_width = 0.6)
 
-@df cv_no_na boxplot(string.(:H), :cvC1;
+@df df_all boxplot(string.(:H), :cv_total;
                      xlabel = "H",
-                     ylabel = "CV(C1)",
-                     title = "CV(C1) across all nuisance runs",
+                     ylabel = "CV total harvest",
+                     title = "CV total harvest across all nuisance runs",
                      fillalpha = 0.5,
                      legend = false,
                      linewidth = 0.8,
                      whisker_width = 0.6)                     
 
-eig_no_na = filter!(r -> isfinite(r.λ1), df_all)
-@df df_all scatter(string.(:o), :λ1;
+
+@df df_all boxplot(string.(:o), :λ1;
                      xlabel = "o",
                      ylabel = "λ1",
                      title = "λ1 across all nuisance runs",
@@ -261,7 +256,7 @@ eig_no_na = filter!(r -> isfinite(r.λ1), df_all)
                      linewidth = 0.8,
                      whisker_width = 0.6)
 
-@df df_all scatter(string.(:w), :λ1;
+@df df_all boxplot(string.(:w), :λ1;
                      xlabel = "w",
                      ylabel = "λ1",
                      title = "λ1 across all nuisance runs",
@@ -270,6 +265,28 @@ eig_no_na = filter!(r -> isfinite(r.λ1), df_all)
                      linewidth = 0.8,
                      whisker_width = 0.6)
       
+@df df_all boxplot(string.(:H), :λ1;
+                     xlabel = "H",
+                     ylabel = "λ1",
+                     title = "λ1 across all nuisance runs",
+                     fillalpha = 0.5,
+                     legend = false,
+                     linewidth = 0.8,
+                     whisker_width = 0.6)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ##Calculate median and IQR for cvC1 and eigenvalue - filter out NAs
 df = filter(r -> isfinite(r.cvC1) && isfinite(r.λ1), df_all)

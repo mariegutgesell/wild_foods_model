@@ -577,6 +577,72 @@ dt = step(t_eig)
         sol = sol)
 end 
 
+# ---- CV helper ----
+cv(x) = mean(x) == 0 ? NaN : (std(x) / mean(x))
+
+##equilibrium forced without eigenvalue calculation and integration
+function equilibrium_forced_2(p, P0; t_warmup = 300.0, t_eval = 500.0, ngrid = 1000, reltol = 1e-8, abstol = 1e-8)
+    u0 = @views [1.5, 1.5, 1.0, 1.0, P0] ##initial condition
+    tspan = (0.0, t_eval)
+    t_grid = range(t_warmup, t_eval, length = ngrid) ##extract dynamics after settling 
+
+    #extract solutions over limit cycle 
+    prob = ODEProblem(model_forced!, u0, tspan,p) ##only need to use deepcopy if you are changing parameters inside the function
+    sol = solve(prob, Tsit5(); reltol = reltol, abstol = abstol, saveat = t_grid, save_everystep = false, dense = false)
+    U = Array(sol)
+    
+        # Robust CV helper for a vector time series
+    coeffvar(v) = begin
+        μ = mean(v)
+        if !isfinite(μ) || abs(μ) ≤ 1e-10
+            NaN
+        else
+            std(v; corrected=false) / μ
+        end
+    end
+
+        # State stats over time window
+    mean_state = dropdims(mean(U; dims=2), dims=2)
+    sd_state   = dropdims(std(U;  dims=2, corrected=false), dims=2)
+    min_state  = dropdims(minimum(U; dims=2), dims=2)
+    max_state  = dropdims(maximum(U; dims=2), dims=2)
+    cv_state   = sd_state ./ mean_state
+    cv_state[.!isfinite.(cv_state)] .= NaN   # guard
+
+    # Flux time series into P at each saved time
+    # Iterate over columns of U, each is a 5-vector state at time t_grid[j]
+    nT = length(t_grid)
+    fr_total = Vector{Float64}(undef, nT)
+    fr_R1    = similar(fr_total); fr_R2 = similar(fr_total)
+    fr_C1    = similar(fr_total); fr_C2 = similar(fr_total)
+    fr_G     = similar(fr_total)
+
+    @inbounds for j in 1:nT
+        u = @view U[:, j]
+        tot, r1, r2, c1, c2, g = total_FR_into_P(u, p, t_grid[j])
+        fr_total[j] = tot; fr_R1[j] = r1; fr_R2[j] = r2
+        fr_C1[j]    = c1;  fr_C2[j] = c2; fr_G[j]  = g
+    end
+
+    return (
+        mean      = mean_state,            # 5-vector (R1,R2,C1,C2,P)
+        sd        = sd_state,
+        amplitude = max_state .- min_state,
+        min       = min_state,
+        max       = max_state,
+        cv        = cv_state,              # state CVs (not a function name!)
+        cv_total  = coeffvar(fr_total),    # flux CVs
+        cv_R1     = coeffvar(fr_R1),
+        cv_R2     = coeffvar(fr_R2),
+        cv_C1     = coeffvar(fr_C1),
+        cv_C2     = coeffvar(fr_C2),
+        cv_G      = coeffvar(fr_G)
+    )
+end 
+#p = ModelPar_active()
+#P0 = 0.25
+#test = equilibrium_forced_2(p, P0; t_warmup = 300.0, t_eval = 500.0, ngrid = 1000, reltol = 1e-8, abstol = 1e-8)
+
 
 ##trying my own equilibrium function, that follows structure similar to KC 
 ##other functions for eigenvalue analysis - based on KC code
@@ -643,20 +709,6 @@ sd_state   = stats.sd
 min_state = stats.min
 max_state  = stats.max
 cv         = stats.cv
-
-    #extract solutions over limit cycle 
-   # prob = ODEProblem(model_unforced!, u0, tspan, deepcopy(p)) ##only need to use deepcopy if you are changing parameters inside the function
-   # sol = solve(prob, reltol = 1e-8, abstol = 1e-8)
-   # sol_grid = sol(t_grid, idxs=1:5)
-    
-    ##Calculate mean state metrics over the limit cycle 
-   # mean_state = mean(U; dims=2)
-   # range_state = maximum(U, dims = 2) - minimum(U, dims = 2)
-   # min_state = minimum(U, dims =2)
-   # max_state = maximum(U, dims = 2)
-   # sd_state = std(U, dims = 2)
-   # cv = sd_state ./ mean_state
-
    
    #use ODE result as initial guess for equilibrium
     u_approx = sol(t_eval) ##returns full vector of state variables at time t
@@ -706,10 +758,78 @@ cv         = stats.cv
     return(eq = eq, λ1 = λ1, λ1_imag =λ1_imag, react = react, cv=cv, min = min_state, max = max_state,  mean = mean_state, sd = sd_state)
 end 
 
-##Next steps:
+###Functions to calculate CV of total harvest
+# ---- CV helper ----
+cv(x) = mean(x) == 0 ? NaN : (std(x) / mean(x))
 
-##3) why is matrix throwing NAs for certain values when can solve with ODE? 
+# ---- run, sample post-warmup, compute FR_into_P series + CVs ----
+function fr_cv_unforced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    tspan = (0.0, t_eval)
+    prob  = ODEProblem(model_unforced!, u0, tspan, deepcopy(p))
+    sol   = solve(prob; reltol=1e-8, abstol=1e-8)
 
+    t_grid  = range(t_warmup, t_eval; length=ngrid)
+    us      = sol.(t_grid)
+
+    # time series of fluxes into P
+    fr_total = Float64[]; fr_R1 = Float64[]; fr_R2 = Float64[]
+    fr_C1 = Float64[];    fr_C2 = Float64[]; fr_G  = Float64[]
+
+    for (u, t) in zip(us, t_grid)
+        tot, r1, r2, c1, c2, g = total_FR_into_P(u, p, t)
+        push!(fr_total, tot); push!(fr_R1, r1); push!(fr_R2, r2)
+        push!(fr_C1, c1);     push!(fr_C2, c2); push!(fr_G,  g)
+    end
+
+    return (; 
+        cv_total = cv(fr_total),
+        cv_R1    = cv(fr_R1),
+        cv_R2    = cv(fr_R2),
+        cv_C1    = cv(fr_C1),
+        cv_C2    = cv(fr_C2),
+        cv_G     = cv(fr_G)
+    )
+end
+
+function fr_cv_forced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    tspan = (0.0, t_eval)
+    prob  = ODEProblem(model_forced!, u0, tspan, deepcopy(p))
+    sol   = solve(prob; reltol=1e-8, abstol=1e-8)
+
+    t_grid  = range(t_warmup, t_eval; length=ngrid)
+    us      = sol.(t_grid)
+
+    # time series of fluxes into P
+    fr_total = Float64[]; fr_R1 = Float64[]; fr_R2 = Float64[]
+    fr_C1 = Float64[];    fr_C2 = Float64[]; fr_G  = Float64[]
+
+    for (u, t) in zip(us, t_grid)
+        tot, r1, r2, c1, c2, g = total_FR_into_P(u, p, t)
+        push!(fr_total, tot); push!(fr_R1, r1); push!(fr_R2, r2)
+        push!(fr_C1, c1);     push!(fr_C2, c2); push!(fr_G,  g)
+    end
+
+    return (; 
+        cv_total = cv(fr_total),
+        cv_R1    = cv(fr_R1),
+        cv_R2    = cv(fr_R2),
+        cv_C1    = cv(fr_C1),
+        cv_C2    = cv(fr_C2),
+        cv_G     = cv(fr_G),
+        mean_total = mean(fr_total),
+        mean_R1 = mean(fr_R1),
+        mean_R2 = mean(fr_R2),
+        mean_C1 = mean(fr_C1),
+        mean_C2 = mean(fr_C2),
+        mean_G = mean(fr_G),
+        sd_total = std(fr_total),
+        sd_R1 = std(fr_R1),
+        sd_R2 = std(fr_R2),
+        sd_C1 = std(fr_C1),
+        sd_C2 = std(fr_C2),
+        sd_G = std(fr_G),
+    )
+end
 
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
@@ -717,16 +837,18 @@ end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
-tspan = (0.0, 1000.0)
+tspan = (0.0, 500.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 200.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 250.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(o = 0.1, w = 0.3, H = 0.1, r = 0.65, K = 2.3683627216433742, aR_C = 2.656849317383038, aR_P = 0.14396701216802493, aC_P = 0.3804500414761093, aG_P = 2.0838106972024106, hR_P = 1.032142857142857, hR_C = 1.8607142857142855, hC_P = 0.20357142857142857, hG_P = 2.482142857142857, e = 0.6428571428571428, mC = 0.2760714285714285, mP = 1.1275, G = 4.642857142857142)
+p = ModelPar_active(o = 0.2, w = 0.5, H = 0.1, r = 2.0, K = 3.0, aR_C = 0.9, aR_P = 0.9, aC_P = 1.2, aG_P = 1.2, hR_P = 0.6, hR_C = 0.6, hC_P = 0.6, hG_P = 0.6, e = 0.7, mC = 0.3, G = 5.0, l = 1.0)
+#p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.5153846153846153, K = 3.6690421064496563, aR_C = 0.7115170954937349, aR_P = 0.2498541064605251, aC_P = 2.6321394767838195, aG_P = 0.14805976913072363, hR_P = 1.103846153846154, hR_C = 1.326923076923077, hC_P = 0.21153846153846156, hG_P = 1.9961538461538462, e = 0.8076923076923078, mC = 0.2965384615384616, G = 5.0)
+
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
 ##also this ODE solver is working, why in function am i then getting NAs/Infs in matrix? 
