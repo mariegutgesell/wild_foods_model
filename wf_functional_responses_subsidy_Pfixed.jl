@@ -9,15 +9,53 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant
 
 ##Plotting out preference functions
 p = ModelPar_active()
-u = [1.0, 1.0, 2.0, 1.0, 0.25]
+u = [1.0, 1.0, 1.0, 1.0, 0.25]
 t = 0.0
 ##omnivory preference function - active
 o_vals = 0.0:0.1:1.0
-pref_vals = [(p.o = o; om_i_pref_active(u, p, t)) for o in o_vals]
+C1_vals = 0.1:0.1:10.0
+R1_vals = 0.1:0.1:10.0
+pref_vals = [(p.o = o; om_i_pref_active([R1,1.0, C1, 1.0, 0.25], p, t)) for R1 in R1_vals, C1 in C1_vals, o in o_vals]
 print(pref_vals)
 plot(o_vals, pref_vals, xlabel = "o", ylabel = "omnivory preference (active)", title = "Omnivory Preference over o")
 
-##omnivory preference function - active
+z_1 = pref_vals[:, :, 2]
+heatmap(
+    C1_vals, R1_vals, z_1;
+    xlabel = "C1 density",
+    ylabel = "R1 density",
+    title  = "Omnivory preference across C1-R1",
+    colorbar_title = "Omnivory Preference where o = 0.1"
+)
+
+z_2 = pref_vals[:, :, 3]
+heatmap(
+    C1_vals, R1_vals, z_2;
+    xlabel = "C1 density",
+    ylabel = "R1 density",
+    title  = "Omnivory preference across C1-R1",
+    colorbar_title = "Omnivory Preference where o = 0.2"
+)
+
+
+z_5 = pref_vals[:, :, 6]
+heatmap(
+    C1_vals, R1_vals, z_5;
+    xlabel = "C1 density",
+    ylabel = "R1 density",
+    title  = "Omnivory preference across C1-R1",
+    colorbar_title = "Omnivory Preference where o = 0.5"
+)
+
+z_9 = pref_vals[:, :, 10]
+heatmap(
+    C1_vals, R1_vals, z_9;
+    xlabel = "C1 density",
+    ylabel = "R1 density",
+    title  = "Omnivory preference across C1-R1",
+    colorbar_title = "Omnivory Preference where o = 0.9"
+)
+##omnivory preference 3function - passive
 o_vals = 0.0:0.1:1.0
 pref_vals = [(p.o = o; om_i_pref_fixed(u, p, t)) for o in o_vals]
 print(pref_vals)
@@ -28,9 +66,30 @@ plot(o_vals, pref_vals, xlabel = "o", ylabel = "omnivory preference (passive)", 
 
 ##habitat preference function
 w_vals = 0.0:0.1:1.0
-pref_vals = [(p.w = w; hab_pref(u, p, t)) for w in w_vals]
+C1_vals = 0.1:0.1:10.0
+C2_vals = 0.1:0.1:10.0
+pref_vals = [(p.w = w; hab_pref([1.0,1.0, C1, C2, 0.25], p, t)) for  C1 in C1_vals, C2 in C2_vals, w in w_vals]
 print(pref_vals)
 plot(w_vals, pref_vals, xlabel = "w", ylabel = "habitat preference", title = "Habitat Preference over w")
+
+z_1 = pref_vals[:, :, 2]
+heatmap(
+    C1_vals, C2_vals, z_1;
+    xlabel = "C1 density",
+    ylabel = "C2 density",
+    title  = "Habitat preference across C1-C2",
+    colorbar_title = "Habitat Preference where w = 0.1"
+)
+
+z_5 = pref_vals[:, :, 6]
+heatmap(
+    C1_vals, C2_vals, z_5;
+    xlabel = "C1 density",
+    ylabel = "C2 density",
+    title  = "Habitat preference across C1-C2",
+    colorbar_title = "Habitat Preference where w = 0.5"
+)
+
 
 ##grocery preference 
 H_vals = 0.0:0.1:1.0
@@ -148,9 +207,19 @@ R2_vals = range(0, 15, length = 10)
 C1_vals = range(0, 15, length = 10)
 C2_vals = range(0, 15, length = 10)
 
-response_vals_R1 = [f_R1P((R1, R1, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+response_vals_R1 = [f_R1P((R1, 1.0, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 plot(R1_vals, response_vals_R1,
 xlabel = "R1 Density", ylabel = "Predator Consumption Rate of R1", title = "Functional Response to R1")
+
+p = ModelPar_active(G = 0.0)
+response_vals_R2 = [f_R1P((1.0, R2, 0.001, 0.001, 0.25), p, 0.0) for R2 in R2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+plot(R2_vals, response_vals_R2,
+xlabel = "R2 Density", ylabel = "Predator Consumption Rate of R1", title = "Functional Response to R1")
+
+response_vals_C1 = [f_R1P((1.0, 1.0, C1, 1.0, 0.25), p, 0.0) for C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
+plot(C1_vals, response_vals_C1,
+xlabel = "C1 Density", ylabel = "Predator Consumption Rate of R1", title = "Functional Response to R1")
+
 
 response_vals_R1_R2 = [f_R1P((R1, R2, 1.0, 1.0, 0.25), p, 0.0) for R1 in R1_vals, R2 in R2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 surface(
@@ -163,13 +232,18 @@ surface(
 
 response_vals_R1_C1 = [f_R1P((R1, 1.0, C1, 1.0, 0.25), p, 0.0) for R1 in R1_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 surface(
-    R1_vals, C1_vals, response_vals_R1_C1;
-    xlabel = "R1 density",
-    ylabel = "C1 density",
+    C1_vals, R1_vals, response_vals_R1_C1;
     title  = "f_R1P across R1–C1",
     colorbar_title = "Predator consumption of R1"
 )
 
+heatmap(
+    C1_vals, R1_vals, response_vals_R1_C1;
+    title  = "f_R1P across R1–C1",
+    colorbar_title = "Predator consumption of R1"
+)
+
+##figure out how to rotate it 
 response_vals_R2_C1 = [f_R1P((1.0, R2, C1, 1.0, 0.25), p, 0.0) for R2 in R2_vals, C1 in C1_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 surface(
     R2_vals, C1_vals, response_vals_R2_C1;
@@ -188,6 +262,13 @@ surface(
     colorbar_title = "Predator consumption of R1"
 )
 
+heatmap(
+    R2_vals, C2_vals, response_vals_R2_C2;
+    xlabel = "R2 density",
+    ylabel = "C2 density",
+    title  = "f_R1P across R2-C2",
+    colorbar_title = "Predator consumption of R1"
+)
 response_vals_C1_C2 = [f_R1P((1.0, 1.0, C1, C2, 0.25), p, 0.0) for C1 in C1_vals, C2 in C2_vals] ##the numbers in u part of function set densities for R2, C1 and C2
 surface(
     C1_vals, C2_vals, response_vals_C1_C2;

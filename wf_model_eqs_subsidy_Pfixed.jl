@@ -618,7 +618,7 @@ sol  = solve(prob, Tsit5(); reltol=1e-8, abstol=1e-8,
             save_idxs=1:5)              # only save the states you need
 ##look up if function has an option for precision or number of digits used in the computation 
     
-function robust_stats(U; clip_negatives=true, tol_abs=1e-12, tol_rel=1e-6, cv_for_absent=NaN)
+function robust_stats(U; clip_negatives=true, tol_abs=1e-4, tol_rel=1e-4, cv_for_absent=NaN)
     U2 = clip_negatives ? max.(U, 0.0) : U            # states×times
     μ  = dropdims(mean(U2; dims=2), dims=2)
     σ  = dropdims(std(U2;  dims=2), dims=2)
@@ -717,15 +717,14 @@ end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
-tspan = (0.0, 400.0)
+tspan = (0.0, 1000.0)
 G_pre = 2.0 
 G_pulse = G_pre
 t_pulse = 200.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 250.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(w = 0.5, o = 0.0, H = 0.5, l = 1.0, D = 0.5, G_func = G_func)
-
+p = ModelPar_active(o = 0.1, w = 0.3, H = 0.1, r = 0.65, K = 2.3683627216433742, aR_C = 2.656849317383038, aR_P = 0.14396701216802493, aC_P = 0.3804500414761093, aG_P = 2.0838106972024106, hR_P = 1.032142857142857, hR_C = 1.8607142857142855, hC_P = 0.20357142857142857, hG_P = 2.482142857142857, e = 0.6428571428571428, mC = 0.2760714285714285, mP = 1.1275, G = 4.642857142857142)
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
 sol_1 = solve(prob_1)

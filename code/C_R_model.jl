@@ -60,8 +60,8 @@ function model_unforced!(du, u, p ,t)
    
    ##ODEs
   # du[1] = r * R1 * (1 - R1 / (K - l1*(e1(t) - 0.5))) - C * f_r1c #temporally forced R 
-   du[1] = r * R1 * (1 - R1 / K) - C * f_r1c - Y
-   du[2] = e * C * (f_r1c)  - mC * C - Z
+   du[1] = r * R1 * (1 - R1 / K) - C * f_r1c - Y * R1
+   du[2] = e * C * (f_r1c)  - mC * C - Z*C
  
    return du
  end 
@@ -151,7 +151,7 @@ end
 u0 = [3.0, 1.5]
 tspan = (0.0, 500.0)
 ##set Parameters
-p = ModelPar_test_1(K = 5.0, Z = 0.0, Y = 0.0)
+p = ModelPar_test_1(K = 8.0, aR_C = 0.8, Z = 0.0, Y = 0.3)
 
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
@@ -273,7 +273,7 @@ plot!(df_eq.mC, C_max, col = "red", label = "C max")
 
 ##over range of Z
 results_Z_all = []
-for Z in 0.0:0.1:0.75
+for Z in 0.0:0.1:2.0
     p = ModelPar_test_1(Z=Z, K = 7.0)
     t = (100.0)
     eq_data = equilibrium_unforced(p, t)
@@ -301,7 +301,7 @@ plot!(df_eq.Z, C_max, col = "red", label = "C max")
 ##over range of Y
 results_Y_all = []
 for Y in 0.0:0.1:1.5
-    p = ModelPar_test_1(Y=Y, K = 7.0)
+    p = ModelPar_test_1(Y=Y, K = 5.0)
     t = (100.0)
     eq_data = equilibrium_unforced(p, t)
     push!(results_Y_all, (; Y=Y, eq_data...))
