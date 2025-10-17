@@ -844,9 +844,10 @@ t_pulse = 200.0 ##time when disturbance occurs, want to be once model at equilib
 t_recover = 250.0 ##time when decline in resources ends 
  
 ##set Parameters
-p = ModelPar_active(o = 0.2, w = 0.5, H = 0.1, r = 2.0, K = 3.0, aR_C = 0.9, aR_P = 0.9, aC_P = 1.2, aG_P = 1.2, hR_P = 0.6, hR_C = 0.6, hC_P = 0.6, hG_P = 0.6, e = 0.7, mC = 0.3, G = 5.0, l = 1.0)
+#p = ModelPar_active(o = 0.5, w = 0.5, H = 0.1, r = 2.0, K = 3.0, aR_C = 0.9, aR_P = 0.9, aC_P = 1.2, aG_P = 1.2, hR_P = 0.6, hR_C = 0.6, hC_P = 0.6, hG_P = 0.6, e = 0.7, mC = 0.3, G = 5.0, l = 1.0)
 #p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.5153846153846153, K = 3.6690421064496563, aR_C = 0.7115170954937349, aR_P = 0.2498541064605251, aC_P = 2.6321394767838195, aG_P = 0.14805976913072363, hR_P = 1.103846153846154, hR_C = 1.326923076923077, hC_P = 0.21153846153846156, hG_P = 1.9961538461538462, e = 0.8076923076923078, mC = 0.2965384615384616, G = 5.0)
 
+p = ModelPar_active(o = 0.5, w = 0.5, H = 1.0, l = 0.5)
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
@@ -856,16 +857,16 @@ sol_1 = solve(prob_1)
 ##plot timeseries
 plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
 
-#plot(sol_1, tspan=(0, 500),
-#     xlabel="Time", ylabel="Population",
-#     title="ODE Solution - Active Omnivory")
+plot(sol_1, tspan=(400, 500),
+     xlabel="Time", ylabel="Population",
+     title="ODE Solution - Active Omnivory")
 
- #   for (u, t) in zip(sol_1.u, sol_1.t)
-  #  W = hab_pref(u, p, t)
-   # o = om_i_pref_fixed(u, p, t)
-   # H = sub_pref_func(u, p, t)
-   # println("t=$t, W=$W, o=$o, H=$H")
-#end
+    for (u, t) in zip(sol_1.u, sol_1.t)
+    W = hab_pref(u, p, t)
+    o = om_i_pref_fixed(u, p, t)
+    H = sub_pref_func(u, p, t)
+    println("t=$t, W=$W, o=$o, H=$H")
+end
 
 ##Look at predator consumption  
 

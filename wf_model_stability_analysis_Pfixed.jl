@@ -14,8 +14,8 @@ K_results = equilibrium_forced(p, P0)
 
 results_K_all_uf = []
 #P_fixed = 0.25
-for K in 0.1:0.1:6.5
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K)
+for K in 1.0:0.1:3.6
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, K=K)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_K_all_uf, (; K=K, eq_data...))
@@ -115,8 +115,8 @@ plot(df_eq.K, P_cv)
 ##forced model
 
 results_K_all_f = []
-for K in 1.5:0.1:6.5
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, K=K, l = 1.0)
+for K in 1.0:0.1:3.8
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, K=K, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_K_all_f, (; K=K, eq_data...))
@@ -197,15 +197,15 @@ plot(df_eq.K, P_cv)
 
 ##how does a influence? - unforced model
 results_a_all_uf = []
-for aC_P in 0.0:0.1:20.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, aC_P=aC_P, K = 2.75)
+for aC_P in 0.1:0.1:6.0
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, aC_P=aC_P)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_a_all_uf, (; aC_P=aC_P, eq_data...))
 end
 df_eq = DataFrame(results_a_all_uf)
 
-plot(df_eq.aC_P, df_eq.λ1)
+plot(df_eq.aC_P, df_eq.λ1, xlabel = "aC_P", ylabel = "max eigenvalue")
 ##eigenvalue flipping likely result of period of time that evaluating across the phase, also this integrated eigenvalue doesnt really make sense anyway so not really worried about it 
 
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
@@ -274,8 +274,8 @@ plot(df_eq.aC_P, P_cv)
 
 ##influence of a in forced model
 results_a_all_f = []
-for aC_P in 0.0:0.1:10.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, aC_P=aC_P)
+for aC_P in 0.1:0.1:6.0
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, aC_P=aC_P, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_a_all_f, (; aC_P=aC_P, eq_data...))
@@ -354,7 +354,7 @@ plot(df_eq.aC_P, P_cv)
 ##how does aGP influence? - unforced model
 results_aG_all_uf = []
 for aG_P in 0.0:0.1:10.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1,  aG_P=aG_P)
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0,  aG_P=aG_P)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_aG_all_uf, (; aG_P=aG_P, eq_data...))
@@ -507,15 +507,15 @@ plot(df_eq.aG_P, P_cv)
 
 ##how does aR_C influence - unforced model
 results_aRC_all_uf = []
-for aR_C in 0.5:0.1:10.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1,  aR_C=aR_C)
+for aR_C in 0.5:0.1:2.8
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0,  aR_C=aR_C)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_aRC_all_uf, (; aR_C=aR_C, eq_data...))
 end
 df_eq = DataFrame(results_aRC_all_uf)
 
-plot(df_eq.aR_C, df_eq.λ1)
+plot(df_eq.aR_C, df_eq.λ1, xlabel = "aR_C", ylabel = "max eigenvalue")
 ##eigenvalue flipping likely result of period of time that evaluating across the phase, also this integrated eigenvalue doesnt really make sense anyway so not really worried about it 
 
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
@@ -586,8 +586,8 @@ plot(df_eq.aR_C, P_cv)
 
 ##how does aR_C influence - forced model
 results_aRC_all_f = []
-for aR_C in 0.5:0.1:5.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1,  aR_C=aR_C)
+for aR_C in 0.5:0.1:2.8
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0,  aR_C=aR_C, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_aRC_all_f, (; aR_C=aR_C, eq_data...))
@@ -663,15 +663,15 @@ plot(df_eq.aR_C, P_cv)
 
 ##how does e influence? - unforced model
 results_e_all_uf = []
-for e in 0.0:0.1:1.5
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, e=e)
+for e in 0.4:0.1:1.0
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, e=e)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_e_all_uf, (; e=e, eq_data...))
 end
 df_eq = DataFrame(results_e_all_uf)
 
-plot(df_eq.e, df_eq.λ1)
+plot(df_eq.e, df_eq.λ1, xlabel = "e", ylabel = "max eigenvalue")
 
 ##look at cv, min/max bifurcations
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
@@ -742,8 +742,8 @@ plot(df_eq.e, P_cv)
 
 ##how does e influence? - forced model
 results_e_all_f = []
-for e in 0.3:0.1:1.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, e=e)
+for e in 0.4:0.1:1.0
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, e=e, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_e_all_f, (; e=e, eq_data...))
@@ -820,15 +820,15 @@ plot(df_eq.e, P_cv)
 
 ##how does m influence? - unforced model
 results_m_all_uf = []
-for mC in 0.0:0.1:1.5
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, mC=mC)
+for mC in 0.8:0.1:1.5
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, mC=mC)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_m_all_uf, (; mC=mC, eq_data...))
 end
 df_eq = DataFrame(results_m_all_uf)
 
-plot(df_eq.mC, df_eq.λ1)
+plot(df_eq.mC, df_eq.λ1, xlabel = "mC", ylabel = "max eigenvalue")
 
 
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
@@ -898,8 +898,8 @@ plot(df_eq.mC, P_cv)
 
 ##how does m influence? - forced model
 results_m_all_f = []
-for mC in 0.1:0.1:2.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = 0.1, mC=mC)
+for mC in 0.8:0.1:1.5
+    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, mC=mC, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_m_all_f, (; mC=mC, eq_data...))
@@ -978,14 +978,14 @@ plot(df_eq.mC, P_cv)
 ##how does o influence? - unforced model
 results_o_all_uf = []
 for o in 0.0:0.1:1.0
-    p = ModelPar_active(w = 0.2, o = o, H = 0.1, K = 3.0)
+    p = ModelPar_active(w = 0.5, o = o, H = 0.0)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_o_all_uf, (; o=o, eq_data...))
 end
 df_eq = DataFrame(results_o_all_uf)
 
-plot(df_eq.o, df_eq.λ1)
+plot(df_eq.o, df_eq.λ1, xlabel = "o", ylabel = "max eigenvalue")
 
 
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
@@ -1056,7 +1056,7 @@ plot(df_eq.o, P_cv)
 ##how does o influence? - forced model
 results_o_all_f = []
 for o in 0.0:0.1:1.0
-    p = ModelPar_active(w = 0.2, o = o, H = 0.1, K = 3.25)
+    p = ModelPar_active(w = 0.5, o = o, H = 0.0, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_o_all_f, (; o=o, eq_data...))
@@ -1134,14 +1134,14 @@ plot(df_eq.o, P_cv)
 ##how does w influence? - unforced model
 results_w_all_uf = []
 for w in 0.0:0.1:1.0
-    p = ModelPar_active(w = w, o = 0.1, H = 0.1, K = 3.0)
+    p = ModelPar_active(w = w, o = 0.5, H = 0.0, K = 3.25)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_w_all_uf, (; w=w, eq_data...))
 end
 df_eq = DataFrame(results_w_all_uf)
 
-plot(df_eq.w, df_eq.λ1)
+plot(df_eq.w, df_eq.λ1, xlabel = "w", y = "max eigenvalue")
 
 
 R1_cv = [row.cv[1] for row in eachrow(df_eq)]
@@ -1212,7 +1212,7 @@ plot(df_eq.w, P_cv)
 ##how does w influence? - forced model
 results_w_all_f = []
 for w in 0.0:0.1:1.0
-    p = ModelPar_active(w = w, o = 0.1, H = 0.1, K = 3.0, D = 0.25)
+    p = ModelPar_active(w = w, o = 0.5, H = 0.0, l = 0.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_w_all_f, (; w=w, eq_data...))
@@ -1290,7 +1290,7 @@ plot(df_eq.w, P_cv)
 ##Do over gradient of o and w 
 results_o_w_all_uf = []
 for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
-    p = ModelPar_active(w = w, o = o, H = 0.1)
+    p = ModelPar_active(w = w, o = o, H = 1.0, K = 3.05)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_o_w_all_uf, (; w=w, o=o, eq_data...))
@@ -1318,9 +1318,9 @@ heatmap(o_vals, w_vals, λ_mat;
 
 
 ##Do over gradient of o and w - forced model
-results_o_w_all_f = []
+sresults_o_w_all_f = []
 for o in 0.0:0.1:1.0,  w in 0.0:0.1:1.0
-    p = ModelPar_active(w = w, o = o, H = 0.1)
+    p = ModelPar_active(w = w, o = o, H = 0.0)
    # t = 100
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
@@ -1513,12 +1513,89 @@ plot!(df_eq.G, C2_max, col = "green", label = "C2 max")
 
 plot(df_eq.G, P_cv)
 
+##how does H influence? - forced model
+results_H_all_uf = []
+
+for H in 0.0:0.1:1.0
+    p = ModelPar_active(w = 0.5, o = 0.5, H = H, K = 3.05)
+    P0 = 0.25
+    eq_data = equilibrium_unforced(p, P0)
+    push!(results_H_all_uf, (; H=H, eq_data...))
+end
+df_eq = DataFrame(results_H_all_uf)
+
+plot(df_eq.H, df_eq.λ1, xlabel = "H", ylabel = "max eigenvalue")
+
+
+R1_cv = [row.cv[1] for row in eachrow(df_eq)]
+println(R1_cv)
+R1_max = [row.max[1] for row in eachrow(df_eq)]
+R1_min = [row.min[1] for row in eachrow(df_eq)]
+R2_cv = [row.cv[2] for row in eachrow(df_eq)]
+R2_max = [row.max[2] for row in eachrow(df_eq)]
+R2_min = [row.min[2] for row in eachrow(df_eq)]
+C1_cv = [row.cv[3] for row in eachrow(df_eq)]
+C1_max = [row.max[3] for row in eachrow(df_eq)]
+C1_min = [row.min[3] for row in eachrow(df_eq)]
+C2_cv = [row.cv[4] for row in eachrow(df_eq)]
+C2_max = [row.max[4] for row in eachrow(df_eq)]
+C2_min = [row.min[4] for row in eachrow(df_eq)]
+P_cv = [row.cv[5] for row in eachrow(df_eq)]
+
+plot(df_eq.H, R1_cv, label = "R1", xlabel = "H", ylabel = "CV")
+plot!(df_eq.H, R2_cv, col = "red", label = "R2")
+plot!(df_eq.H, C1_cv, col = "blue", label = "C1")
+plot!(df_eq.H, C2_cv, col = "green", label = "C2")
+plot(df_eq.H, P_cv)
+
+
+R1_mean = [row.mean[1] for row in eachrow(df_eq)]
+R2_mean = [row.mean[2] for row in eachrow(df_eq)]
+C1_mean = [row.mean[3] for row in eachrow(df_eq)]
+C2_mean = [row.mean[4] for row in eachrow(df_eq)]
+P_mean = [row.mean[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.H, R1_mean, xlabel = "H", ylabel = "Mean")
+plot!(df_eq.H, R2_mean)
+plot!(df_eq.H, C1_mean)
+plot!(df_eq.H, C2_mean)
+plot!(df_eq.H, P_mean)
+
+##looking at SD
+R1_sd = [row.sd[1] for row in eachrow(df_eq)]
+R2_sd = [row.sd[2] for row in eachrow(df_eq)]
+C1_sd = [row.sd[3] for row in eachrow(df_eq)]
+C2_sd = [row.sd[4] for row in eachrow(df_eq)]
+P_sd = [row.sd[5] for row in eachrow(df_eq)]
+
+
+plot(df_eq.H, R1_sd, xlabel = "H", ylabel = "SD")
+plot!(df_eq.H, R2_sd)
+plot!(df_eq.H, C1_sd)
+plot!(df_eq.H, C2_sd)
+plot(df_eq.H, P_sd)
+
+##Look at min/max Plots - bifurcations
+plot(df_eq.H, R1_min, label = "R1 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, R1_max, label = "R1 max")
+
+plot(df_eq.H, R2_min, col = "red", label = "R2 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, R2_max, col = "red", label = "R2 max")
+
+plot(df_eq.H, C1_min, col = "blue", label = "C1 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, C1_max, col = "blue", label = "C1 max")
+
+plot(df_eq.H, C2_min, col = "green", label = "C2 min", xlabel = "H", ylabel ="min/max")
+plot!(df_eq.H, C2_max, col = "green", label = "C2 max")
+
+plot(df_eq.H, P_cv)
 
 ##how does H influence? - forced model
 results_H_all_f = []
 
 for H in 0.0:0.1:1.0
-    p = ModelPar_active(w = 0.2, o = 0.1, H = H)
+    p = ModelPar_active(w = 0.5, o = 0.5, H = H, l = 0.5, K = 3.5)
     P0 = 0.25
     eq_data = equilibrium_forced(p, P0)
     push!(results_H_all_f, (; H=H, eq_data...))

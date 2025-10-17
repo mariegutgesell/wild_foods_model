@@ -52,6 +52,8 @@ bounds = Dict(
 # Optional: which are log-scaled? - good for ones that span orders of magnitude
 logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :K])  # e.g., Set([:aR_P, :aC_P, :aG_P])
 
+##need to figure out how to keep more biologically realistic parameter combinations 
+
 
 
 

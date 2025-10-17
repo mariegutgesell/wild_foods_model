@@ -9,19 +9,19 @@ include("wf_model_eqs_subsidy_Pfixed.jl")
 
 ##Look at across range of parameters
 results_K_uf = []
-for K in 0.1:0.1:6.5
-    pᵢ = ModelPar_active(w=0.2, o=0.1, H=0.1, K=K)  # add other defaults as needed
+for K in 1.0:0.1:3.6
+    pᵢ = ModelPar_active(w=0.5, o=0.5, H=0.0, K=K)  # add other defaults as needed
     cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_K_uf, (; K, cv_nt...))  # NamedTuple splat into the row
 end
 df_cv_K = DataFrame(results_K_uf)
 
-plot(df_cv_K.K, df_cv_K.cv_total)
+plot(df_cv_K.K, df_cv_K.cv_total, xlabel = "K", ylabel = "CV total harvest")
 
 
 results_K_f = []
-for K in 0.1:0.1:6.5
-    pᵢ = ModelPar_active(w=0.2, o=0.1, H=0.1, K=K)  # add other defaults as needed
+for K in 1.0:0.1:3.6
+    pᵢ = ModelPar_active(w=0.5, o=0.5, H=0.0, K=K, l = 0.5)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_K_f, (; K, cv_nt...))  # NamedTuple splat into the row
 end
@@ -35,10 +35,29 @@ plot!(df_cv_K.K, df_cv_K.cv_C2, label = "C2 consumption", xlabel = "K", ylabel =
 plot(df_cv_K.K, df_cv_K.cv_G, label = "G consumption", xlabel = "K", ylabel = "CV")
 
 
+##range of o - unforced
+results_o_uf = []
+for o in 0.0:0.1:1.0
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=0.5, o=o, H=0.0, K = 3.05)  # add other defaults as needed
+    cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_o_uf, (; o, cv_nt...))  # NamedTuple splat into the row
+end
+df_cv_o = DataFrame(results_o_uf)
+print(df_cv_o)
+plot(df_cv_o.o, df_cv_o.cv_total, label = "total consumption", xlabel = "o", ylabel = "CV")
+plot!(df_cv_o.o, df_cv_o.cv_R1, label = "R1 consumption", xlabel = "o", ylabel = "CV")
+plot!(df_cv_o.o, df_cv_o.cv_R2, label = "R2 consumption", xlabel = "o", ylabel = "CV")
+plot!(df_cv_o.o, df_cv_o.cv_C1, label = "C1 consumption", xlabel = "o", ylabel = "CV")
+plot!(df_cv_o.o, df_cv_o.cv_C2, label = "C2 consumption", xlabel = "o", ylabel = "CV")
+plot!(df_cv_o.o, df_cv_o.cv_G, label = "G consumption", xlabel = "o", ylabel = "CV")
+
+
+##range of o - forced
 results_o_f = []
 for o in 0.0:0.1:1.0
-    u0 = [5.0, 4.0, 3.0, 2.0, 0.25]
-    pᵢ = ModelPar_active(w=0.5, o=o, H=0.5, K = 3.0)  # add other defaults as needed
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=0.5, o=o, H=0.0, K = 3.05)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_o_f, (; o, cv_nt...))  # NamedTuple splat into the row
 end
@@ -84,6 +103,22 @@ bar(
 )
 
 
+##do range of w next
+results_w_uf = []
+for w in 0.0:0.1:1.0
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=w, o=0.5, H=0.0, K = 3.05)  # add other defaults as needed
+    cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_w_uf, (; w, cv_nt...))  # NamedTuple splat into the row
+end
+df_cv_w = DataFrame(results_w_uf)
+
+plot(df_cv_w.w, df_cv_w.cv_total, label = "total consumption", xlabel = "w", ylabel = "CV")
+plot!(df_cv_w.w, df_cv_w.cv_R1, label = "R1 consumption", xlabel = "w", ylabel = "CV")
+plot!(df_cv_w.w, df_cv_w.cv_R2, label = "R2 consumption", xlabel = "w", ylabel = "CV")
+plot!(df_cv_w.w, df_cv_w.cv_C1, label = "C1 consumption", xlabel = "w", ylabel = "CV")
+plot!(df_cv_w.w, df_cv_w.cv_C2, label = "C2 consumption", xlabel = "w", ylabel = "CV")
+plot!(df_cv_w.w, df_cv_w.cv_G, label = "G consumption", xlabel = "w", ylabel = "CV")
 
 
 
@@ -92,7 +127,7 @@ bar(
 results_w_f = []
 for w in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=w, o=0.5, H=0.5, K = 3.0)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=w, o=0.5, H=0.0, K = 3.05)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_w_f, (; w, cv_nt...))  # NamedTuple splat into the row
 end
@@ -135,11 +170,29 @@ bar(
 )
 
 
+##range of H - unforced
+results_H_uf = []
+for H in 0.0:0.1:1.0
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=0.5, o=0.5, H=H, K = 3.05)  # add other defaults as needed
+    cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_H_uf, (; H, cv_nt...))  # NamedTuple splat into the row
+end
+df_cv_w = DataFrame(results_H_uf)
+
+plot(df_cv_w.H, df_cv_w.cv_total, label = "total consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_R1, label = "R1 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_R2, label = "R2 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_C1, label = "C1 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_C2, label = "C2 consumption", xlabel = "H", ylabel = "CV")
+plot!(df_cv_w.H, df_cv_w.cv_G, label = "G consumption", xlabel = "H", ylabel = "CV")
+
+
 ##do range of H next
 results_H_f = []
 for H in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=0.5, o=0.5, H=H, K = 3.0)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=0.5, o=0.5, H=H, K = 3.05)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_H_f, (; H, cv_nt...))  # NamedTuple splat into the row
 end
@@ -190,7 +243,7 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(o = o, w = w, H = 0.1, r = 2.0, K = 3.0, aR_C = 0.9, aR_P = 0.9, aC_P = 0.9, aG_P = 1.2, hR_P = 0.6, hR_C = 0.6, hC_P = 0.6, hG_P = 0.6, e = 0.7, mC = 0.3, G = 2.0)
+    pᵢ = ModelPar_active(o = o, w = w, H = 0.0, K = 3.05)
  # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
@@ -215,3 +268,35 @@ heatmap(o_vals, w_vals, cv_total_mat;
         title = "CV of Total Harvest",
         colorbar_title = "CV",
         c = :viridis)
+
+##unforced model
+o_vals = 0.0:0.1:1.0
+w_vals = 0.0:0.1:1.0
+
+results_grid_uf = []
+for o in o_vals, w in w_vals
+    pᵢ = ModelPar_active(o = o, w = w, H = 0.0, K = 3.05)
+ # set/adjust other params as you need
+    cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
+    push!(results_grid_uf, (; o, w, cv_nt...))
+end
+df_cv_o_w = DataFrame(results_grid_uf)
+
+
+o_vals = unique(df_cv_o_w.o)
+w_vals = unique(df_cv_o_w.w)
+
+# Sort them to be safe
+sort!(o_vals)
+sort!(w_vals)
+
+# Create matrix for cv total
+cv_total_mat = [df_cv_o_w[(df_cv_o_w.o .== o) .& (df_cv_o_w.w .== w), :cv_total][1] for w in w_vals, o in o_vals]
+
+# Plot heatmap
+heatmap(o_vals, w_vals, cv_total_mat;
+        xlabel = "Omnivory Preference (o)",
+        ylabel = "Habitat Preference (w)",
+        title = "CV of Total Harvest",
+        colorbar_title = "CV",
+        c = :viridis)        
