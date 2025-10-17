@@ -174,7 +174,7 @@ bar(
 results_H_uf = []
 for H in 0.0:0.1:1.0
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=0.5, o=0.5, H=H, K = 3.05)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=0.5, o=0.2, H=H, K = 3.05)  # add other defaults as needed
     cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_H_uf, (; H, cv_nt...))  # NamedTuple splat into the row
 end
@@ -243,7 +243,7 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(o = o, w = w, H = 0.0, K = 3.05)
+    pᵢ = ModelPar_active(o = o, w = w, H = 0.9, K = 3.05)
  # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))

@@ -198,7 +198,7 @@ plot(df_eq.K, P_cv)
 ##how does a influence? - unforced model
 results_a_all_uf = []
 for aC_P in 0.1:0.1:6.0
-    p = ModelPar_active(w = 0.5, o = 0.5, H = 0.0, aC_P=aC_P)
+    p = ModelPar_active(w = 1.0, o = 0.1, H = 0.0, aC_P=aC_P, K = 2.3)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_a_all_uf, (; aC_P=aC_P, eq_data...))
@@ -237,11 +237,11 @@ C2_mean = [row.mean[4] for row in eachrow(df_eq)]
 P_mean = [row.mean[5] for row in eachrow(df_eq)]
 
 
-plot(df_eq.aC_P, R1_mean, xlabel = "aC_P", ylabel = "Mean")
-plot!(df_eq.aC_P, R2_mean)
-plot!(df_eq.aC_P, C1_mean)
-plot!(df_eq.aC_P, C2_mean)
-plot!(df_eq.aC_P, P_mean)
+plot(df_eq.aC_P, R1_mean, xlabel = "aC_P", ylabel = "Mean", label = "R1")
+plot!(df_eq.aC_P, R2_mean, label = "R2")
+plot!(df_eq.aC_P, C1_mean, label = "C1")
+plot!(df_eq.aC_P, C2_mean, label = "C2")
+plot!(df_eq.aC_P, P_mean, label = "P")
 
 ##looking at SD
 R1_sd = [row.sd[1] for row in eachrow(df_eq)]
@@ -1517,7 +1517,7 @@ plot(df_eq.G, P_cv)
 results_H_all_uf = []
 
 for H in 0.0:0.1:1.0
-    p = ModelPar_active(w = 0.5, o = 0.5, H = H, K = 3.05)
+    p = ModelPar_active(w = 0.5, o = 0.5, H = H)
     P0 = 0.25
     eq_data = equilibrium_unforced(p, P0)
     push!(results_H_all_uf, (; H=H, eq_data...))

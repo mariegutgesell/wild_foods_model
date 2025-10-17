@@ -30,21 +30,21 @@ bounds = Dict(
     :w => (0.0, 1.0),
     :H => (0.0, 1.0),
     :r => (0.2, 3.0),
-    :K => (1.0, 8.0),
-    :aR_P => (0.5, 3.0),
-    :aR_C => (0.5, 3.0),
-    :aC_P => (0.5, 3.0),
-    :aG_P => (0.5, 3.0),
-    :hR_C => (0.1, 3.0),
-    :hR_P => (0.1, 3.0),
-    :hC_P => (0.1, 3.0),
-    :hG_P => (0.1, 3.0),
-    :e   => (0.2, 0.6),
-    :mC  => (0.01, 1.5),
+    :K => (1.0, 3.8),
+    :aR_P => (1.0, 4.5),
+    :aR_C => (2.0, 5.5),
+    :aC_P => (0.8, 2.5),
+    :aG_P => (1.0, 4.5),
+    :hR_C => (0.4, 1.0),
+    :hR_P => (0.5, 2.0),
+    :hC_P => (0.8, 2.0),
+    :hG_P => (0.5, 2.0),
+    :e   => (0.4, 0.8),
+    :mC  => (0.4, 1.0),
    # :mP  => (0.01, 1.5),
-    :G => (0.0, 10.0),
+    :G => (1.0, 10.0),
   #  :G_base => (0.0, 10.0),
-    :l  => (0.1, 5.0),
+    :l  => (0.0, 1.0),
     :pf => (0.5, 10.0),
     :D => (0.0, 1.0)
 )
@@ -97,7 +97,7 @@ o_grid = range(bounds[:o]...; length=11)
 w_grid = range(bounds[:w]...; length=11)
 H_grid = range(bounds[:H]...; length=11)
 
-Nrep = 10  # random nuisance samples per grid point (tune)
+Nrep = 3  # random nuisance samples per grid point (tune)
 
 # Pre-sample nuisance once to reuse (or sample per cell if you prefer)
 rng = MersenneTwister(42)

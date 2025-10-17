@@ -64,7 +64,7 @@ function sub_pref_func(u, p ,t)
     R1, R2, C1, C2, P = u 
     G = p.G_func(t)
 
-    return(p.H * p.G) / (p.H * p.G + (1-p.H)*R1 + (1-p.H)*R2 + (1-p.H) * C1 + (1-p.H)*C2)
+    return(p.H * p.G) / (p.H * p.G + (1-p.H)*(R1 +R2 + C1 +C2))
 end
 ##is this the right way to have the denominator?  i think so yes
 ##is this the same as (1-p.H)*(R1+R2+C1+C2)? check math 
@@ -101,7 +101,7 @@ function f_R1P(u, p, t)
     G = p.G_func(t)
     
     numerator = (1-H1) * W1 * aR_P * o1 * R1
-    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+    denominator = 1 + ((1-H1)*W1 * aR_P * hR_P * o1 * R1 + (1-H1)*(1-W1)* aR_P * hR_P * o2 * R2 + (1-H1)*W1 * aC_P * hC_P * (1-o1) * C1 + (1-H1)*(1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
     return numerator / denominator
 end
 
@@ -115,8 +115,8 @@ function f_R2P(u, p, t)
     G = p.G_func(t)
 
     numerator = (1-H1) * (1 - W1) * aR_P * o2 * R2
-   denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-      return numerator / denominator
+   denominator = 1 + ((1-H1)*W1 * aR_P * hR_P * o1 * R1 + (1-H1)*(1-W1)* aR_P * hR_P * o2 * R2 + (1-H1)*W1 * aC_P * hC_P * (1-o1) * C1 + (1-H1)*(1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+        return numerator / denominator
 end
 
 function f_C1P(u, p, t)
@@ -129,8 +129,8 @@ function f_C1P(u, p, t)
     G = p.G_func(t)
 
     numerator = (1-H1) * W1 * aC_P * (1 - o1) * C1
-    denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-    return numerator / denominator
+  denominator = 1 + ((1-H1)*W1 * aR_P * hR_P * o1 * R1 + (1-H1)*(1-W1)* aR_P * hR_P * o2 * R2 + (1-H1)*W1 * aC_P * hC_P * (1-o1) * C1 + (1-H1)*(1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+      return numerator / denominator
 end
 
 function f_C2P(u, p, t)
@@ -143,8 +143,8 @@ function f_C2P(u, p, t)
     G = p.G_func(t)
 
     numerator = (1-H1) * (1 - W1) * aC_P * (1 - o2) * C2
-   denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-       return numerator / denominator
+    denominator = 1 + ((1-H1)*W1 * aR_P * hR_P * o1 * R1 + (1-H1)*(1-W1)* aR_P * hR_P * o2 * R2 + (1-H1)*W1 * aC_P * hC_P * (1-o1) * C1 + (1-H1)*(1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+        return numerator / denominator
 end
 
 ##trying out functional resposne for G.. type 2 functional response 
@@ -158,8 +158,8 @@ function f_GP(u, p, t)
     G = p.G_func(t)
 
     numerator = H1 * aG_P * G #trying if i remove scaling / suppression of G by other foraging preferences, i think this makes biological sense (but keep 1-H1 in other FRs)
-   denominator = 1 + (W1 * aR_P * hR_P * o1 * R1 + (1-W1)* aR_P * hR_P * o2 * R2 + W1 * aC_P * hC_P * (1-o1) * C1 + (1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
-      return numerator / denominator
+   denominator = 1 + ((1-H1)*W1 * aR_P * hR_P * o1 * R1 + (1-H1)*(1-W1)* aR_P * hR_P * o2 * R2 + (1-H1)*W1 * aC_P * hC_P * (1-o1) * C1 + (1-H1)*(1-W1) * aC_P * hC_P * (1-o2) * C2 + H1 * aG_P * hG_P * G)
+        return numerator / denominator
 end
 
 
@@ -838,7 +838,7 @@ u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
 tspan = (0.0, 500.0)
-G_pre = 2.0 
+G_pre = 1.0 
 G_pulse = G_pre
 t_pulse = 200.0 ##time when disturbance occurs, want to be once model at equilibirum
 t_recover = 250.0 ##time when decline in resources ends 
@@ -846,8 +846,8 @@ t_recover = 250.0 ##time when decline in resources ends
 ##set Parameters
 #p = ModelPar_active(o = 0.5, w = 0.5, H = 0.1, r = 2.0, K = 3.0, aR_C = 0.9, aR_P = 0.9, aC_P = 1.2, aG_P = 1.2, hR_P = 0.6, hR_C = 0.6, hC_P = 0.6, hG_P = 0.6, e = 0.7, mC = 0.3, G = 5.0, l = 1.0)
 #p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.5153846153846153, K = 3.6690421064496563, aR_C = 0.7115170954937349, aR_P = 0.2498541064605251, aC_P = 2.6321394767838195, aG_P = 0.14805976913072363, hR_P = 1.103846153846154, hR_C = 1.326923076923077, hC_P = 0.21153846153846156, hG_P = 1.9961538461538462, e = 0.8076923076923078, mC = 0.2965384615384616, G = 5.0)
-
-p = ModelPar_active(o = 0.5, w = 0.5, H = 1.0, l = 0.5)
+#p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.3375, K = 2.032403975305357, aR_C = 3.6465635168468427, aR_P = 1.6770337454379123, aC_P = 1.364743186162275, aG_P = 1.2649240656786647, hR_P = 1.578125, hR_C = 0.56875, hC_P = 1.7375, hG_P = 0.640625, e = 0.41250000000000003, mC = 0.79375, G = 9.15625, l = 0.84375, pf = 2.578125, D = 0.96875)
+p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, l = 0.5, G_func = G_func)
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)

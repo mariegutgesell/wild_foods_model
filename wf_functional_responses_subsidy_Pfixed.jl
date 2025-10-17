@@ -9,15 +9,15 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant
 
 ##Plotting out preference functions
 p = ModelPar_active()
-u = [1.0, 1.0, 1.0, 1.0, 0.25]
+u = [1.5, 1.5, 1.0, 1.0, 0.25]
 t = 0.0
 ##omnivory preference function - active
 o_vals = 0.0:0.1:1.0
 C1_vals = 0.1:0.1:10.0
 R1_vals = 0.1:0.1:10.0
 pref_vals = [(p.o = o; om_i_pref_active([R1,1.0, C1, 1.0, 0.25], p, t)) for R1 in R1_vals, C1 in C1_vals, o in o_vals]
-print(pref_vals)
-plot(o_vals, pref_vals, xlabel = "o", ylabel = "omnivory preference (active)", title = "Omnivory Preference over o")
+#print(pref_vals)
+#plot(o_vals, pref_vals, xlabel = "o", ylabel = "omnivory preference (active)", title = "Omnivory Preference over o")
 
 z_1 = pref_vals[:, :, 2]
 heatmap(
@@ -69,8 +69,8 @@ w_vals = 0.0:0.1:1.0
 C1_vals = 0.1:0.1:10.0
 C2_vals = 0.1:0.1:10.0
 pref_vals = [(p.w = w; hab_pref([1.0,1.0, C1, C2, 0.25], p, t)) for  C1 in C1_vals, C2 in C2_vals, w in w_vals]
-print(pref_vals)
-plot(w_vals, pref_vals, xlabel = "w", ylabel = "habitat preference", title = "Habitat Preference over w")
+#print(pref_vals)
+#plot(w_vals, pref_vals, xlabel = "w", ylabel = "habitat preference", title = "Habitat Preference over w")
 
 z_1 = pref_vals[:, :, 2]
 heatmap(
@@ -101,7 +101,7 @@ plot(H_vals, pref_vals, xlabel = "H", ylabel = "Grocery preference", title = "Gr
 
 ###Plotting functional responses across ranges of o, w, and h
 p = ModelPar_active()
-u = [1.0, 1.0, 1.0, 1.0, 0.25]
+u = [1.5, 1.5, 1.0, 1.0, 0.25]
 t = 0.0
 
 ##functional responses across o 
@@ -166,6 +166,7 @@ plot!(w_vals, FC2_P_vals, xlabel = "w", label = "FC2_P")
 
 
 ##Range of H
+
 H_vals = 0.0:0.1:1.0
 
 ##R1_P
