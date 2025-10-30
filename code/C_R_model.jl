@@ -443,3 +443,109 @@ surface(a_vals, K_vals, λ1_mat;
         title = "Max Real Eigenvalue (λmax)",
         colorbar_title = "λmax",
         c = :viridis)
+
+
+#####Plotting Isoclines -- NOT WORKING YET 
+# Consumer isocline (vertical line): R = R*
+function Rstar(p::ModelPar_test_1)
+    num = (p.mC + p.Z)
+    den = p.aR_C * (p.e - p.hR_C*(p.mC + p.Z))
+    if den <= 0
+        return NaN      # no positive R* if energetics violated
+    end
+    return num / den
+end
+
+# Resource isocline: C(R) = [r(1 - R/K) - Y] * (1 + a h R) / a
+function C_on_R_isocline(R, p::ModelPar_test_1)
+    term = p.r * (1 - R/p.K) - p.Y
+    return term * (1 + p.aR_C * p.hR_C * R) / p.aR_C
+end
+
+# Effective carrying capacity after Y
+Keff(p::ModelPar_test_1) = p.K * (1 - p.Y / p.r)
+
+# ----------------------
+# ODEs (for vector field/trajectory)
+#
+# Plotting helper
+# ----------------------
+function plot_isoclines(p::ModelPar_test_1; show_vectorfield=true, show_trajectory=true)
+    # R grid restricted to feasible region (where C(R) >= 0 and Keff > 0)
+    Ke = Keff(p)
+    if !(Ke > 0)
+        @warn "Keff <= 0 (Y ≥ r). Resource collapses; no positive isocline segment."
+        Ke = max(1e-6, p.K)  # still make a small range to avoid errors
+    end
+    Rmin, Rmax = 1e-6, max(Ke, 1e-3)
+    Rgrid = range(Rmin, Rmax; length=400)
+
+    # Resource isocline curve (clip negatives)
+    C_R = [max(C_on_R_isocline(R, p), NaN) for R in Rgrid]  # NaN hides negative parts in Plots
+
+    # Consumer isocline (vertical line)
+    Rs = Rstar(p)
+
+    # Pick a reasonable C-axis max for plotting
+    Cmax_guess = maximum(skipmissing(C_R))
+    Cmax = isfinite(Cmax_guess) ? 1.1*Cmax_guess : 1.0
+
+    plt = plot(
+        xlabel = "R",
+        ylabel = "C",
+        legend = :topright,
+        framestyle = :box,
+        size = (750, 500)
+    )
+
+    # Plot R isocline (hump-shaped curve)
+    plot!(plt, Rgrid, C_R, lw=2, label="R-isocline:  Ṙ = 0")
+
+    # Plot vertical C-isocline if it exists
+    if isfinite(Rs)
+        plot!(plt, [Rs, Rs], [0, max(Cmax, 0.1)], lw=2, ls=:dash, label="C-isocline:  Ċ = 0")
+    else
+        @warn "No positive R* (consumer isocline) — violates e > h(m+Z)"
+    end
+
+    # Optional: vector field (arrows)
+    if show_vectorfield
+        nx, ny = 22, 22
+        Rv = range(Rmin, Rmax; length=nx)
+        Cv = range(0.0, max(Cmax, 0.1); length=ny)
+        RV = repeat(collect(Rv), inner=ny)
+        CV = repeat(collect(Cv), outer=nx)
+
+        dR = similar(RV)
+        dC = similar(CV)
+        for i in eachindex(RV)
+            du = zeros(2)
+            model_unforced!(du, (RV[i], CV[i]), p, 0.0)
+            dR[i] = du[1]
+            dC[i] = du[2]
+        end
+        # normalize arrows for visibility
+        len = sqrt.(dR.^2 .+ dC.^2) .+ 1e-12
+        uR = 0.06 .* dR ./ len .* (Rmax - Rmin)
+        uC = 0.06 .* dC ./ len .* max(Cmax, 0.1)
+        quiver!(plt, RV, CV, quiver=(uR, uC), alpha=0.5, label=false)
+    end
+
+    # Optional: sample trajectory
+    if show_trajectory && isfinite(Rs)
+        u0 = [max(Rs*0.7, 1e-3), max(0.5*max(Cmax, 0.2), 1e-6)]
+        prob = ODEProblem(model_unforced!, u0, (0.0, 200.0), p)
+        sol = solve(prob; reltol=1e-9, abstol=1e-12)
+        plot!(plt, sol[1,:], sol[2,:], lw=2, c=:black, label="trajectory")
+        scatter!(plt, [sol[1,end]], [sol[2,end]], ms=5, c=:black, label=false)
+    end
+
+    return plt
+end
+
+# ----------------------
+# Run it
+# ----------------------
+p = ModelPar_test_1()          # tweak parameters here
+plt = plot_isoclines(p; show_vectorfield=true, show_trajectory=true)
+display(plt)

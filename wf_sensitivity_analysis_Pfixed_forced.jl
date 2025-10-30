@@ -22,7 +22,7 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant
 
 # --- Bounds: focal vs nuisance ---
 focal_syms    = (:o, :w, :H)   # change to your three
-nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G, :l, :pf, :D)
+nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
 # Ranges (examples—replace with yours)
 bounds = Dict(
@@ -31,26 +31,26 @@ bounds = Dict(
     :H => (0.0, 1.0),
     :r => (0.2, 3.0),
     :K => (1.0, 3.8),
-    :aR_P => (1.0, 4.5),
-    :aR_C => (2.0, 5.5),
-    :aC_P => (0.8, 2.5),
-    :aG_P => (1.0, 4.5),
-    :hR_C => (0.4, 1.0),
+    :aR_P => (1.0, 2.5),
+    :aR_C => (1.0, 3.0),
+    :aC_P => (0.8, 1.8),
+    :aG_P => (1.0, 3.0),
+    :hR_C => (0.4, 0.8),
     :hR_P => (0.5, 2.0),
-    :hC_P => (0.8, 2.0),
-    :hG_P => (0.5, 2.0),
-    :e   => (0.4, 0.8),
-    :mC  => (0.4, 1.0),
+    :hC_P => (1.0, 2.0),
+    :hG_P => (0.8, 2.0),
+    :e   => (0.7, 1.0),
+    :mC  => (0.6, 1.2),
    # :mP  => (0.01, 1.5),
-    :G => (1.0, 10.0),
+    :G => (1.0, 5.0),
   #  :G_base => (0.0, 10.0),
-    :l  => (0.0, 1.0),
-    :pf => (0.5, 10.0),
-    :D => (0.0, 1.0)
+ #   :l  => (0.0, 1.0),
+ #   :pf => (0.5, 10.0),
+ #   :D => (0.0, 1.0)
 )
 
 # Optional: which are log-scaled? - good for ones that span orders of magnitude
-logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :K])  # e.g., Set([:aR_P, :aC_P, :aG_P])
+logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])  # e.g., Set([:aR_P, :aC_P, :aG_P])
 
 ##need to figure out how to keep more biologically realistic parameter combinations 
 
@@ -95,13 +95,16 @@ end
 # Grids for the 3 focal parameters
 o_grid = range(bounds[:o]...; length=11)
 w_grid = range(bounds[:w]...; length=11)
-H_grid = range(bounds[:H]...; length=11)
+H_grid = range(bounds[:H]...; length=3)
 
 Nrep = 3  # random nuisance samples per grid point (tune)
 
 # Pre-sample nuisance once to reuse (or sample per cell if you prefer)
 rng = MersenneTwister(42)
 nuisance_pool = sample_nuisance(Nrep; rng)
+
+##need to add conditions so that sampled parameter combinations satisfy inequalities that allow for persistence in an unforced model 
+
 
 # Allocate result arrays: (|o|, |w|, |H|)
 #CV_med = Array{Float64}(undef, length(o_grid), length(w_grid), length(H_grid))
@@ -122,8 +125,36 @@ function make_par(o, w, H, ν::NamedTuple)
         G=ν.G)
 end
 
-# Allocate a cell array that stores all runs for each (o,w,H)
-runs_stab = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
+# Allocate a cell array that stores all runs for each (o,w,H)-- for unforced model 
+runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
+
+@info "Running robustness grid..."
+for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
+    P0 = 0.25
+    u0 = [1.5, 1.5, 1.5, 1.5, 0.25]
+    stability_df = NamedTuple[]
+    for s in nuisance_pool
+        p = make_par(o, w, H, s)
+        try
+            out_1 = equilibrium_unforced(p, P0)  # e.g. returns (cv=..., λ1=..., ...)
+            out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)  # e.g. returns (cv=..., λ1=..., ...)
+            # Store the full parameter set + outputs in one record
+            rec = (; o, w, H, s..., C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],λ1 = out_1.λ1,R1_eq = out_1.eq[1], R2_eq = out_1.eq[2],
+            C1_eq = out_1.eq[3], C2_eq = out_1.eq[4], cv_total = out_2.cv_total, cv_R1 = out_2.cv_R1, cv_R2 = out_2.cv_R2, cv_C1 = out_2.cv_C1,cv_C2 = out_2.cv_C2,cv_G = out_2.cv_G)
+            push!(stability_df, rec)
+            push!(runs_stab_unforced[io,iw,iH], rec)
+        catch err
+            @warn "Fail at (o=$o, w=$w, H=$H): $err"
+        end
+    end
+end
+@info "Done."
+
+cell = runs_stab_unforced[1,1,1]
+cell[2]
+
+# Allocate a cell array that stores all runs for each (o,w,H) - for forced model
+runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
 
 @info "Running robustness grid..."
 for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
@@ -137,7 +168,7 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enume
             rec = (; o, w, H, s..., n_id = hash(s), C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],
              cv_total = out_1.cv_total, cv_R1 = out_1.cv_R1, cv_R2 = out_1.cv_R2, cv_C1 = out_1.cv_C1,cv_C2 = out_1.cv_C2,cv_G = out_1.cv_G)
             push!(stability_df, rec)
-            push!(runs_stab[io,iw,iH], rec)
+            push!(runs_stab_forced[io,iw,iH], rec)
         catch err
             @warn "Fail at (o=$o, w=$w, H=$H): $err"
         end
@@ -145,8 +176,17 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enume
 end
 @info "Done."
 
-cell = runs_stab[1,1,1]
+cell = runs_stab_forced[6,6,1]
 cell[2]
+cell[3]
+
+
+
+
+
+
+
+
 
 ##filter out only stable coexistence (i.e., where there is some persistence of all species at equilibrium)
 eps = 1e-8
