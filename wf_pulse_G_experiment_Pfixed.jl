@@ -121,7 +121,7 @@ function plot_pulse_timeseries(pulse;
     tmin=175.0,
     ylims=(0.0, 1.0),
     use_raw=false,
-    colors = (:black, :darkgreen, :salmon, :lightgreen, :pink, :red),
+    colors = (:black, :darkgreen, :salmon, :lightgreen, :pink, :blue),
     show_pulse=true
 )
     if use_raw
@@ -166,25 +166,75 @@ function plot_pulse_timeseries(pulse;
     return plt
 end
 
+##function to plot timeseries so have proper colors for total harvest when only groceries
+function plot_pulse_timeseries_2(pulse; 
+    tmin=175.0,
+    ylims=(0.0, 1.0),
+    use_raw=false,
+    colors = (:black, :darkgreen, :salmon, :lightgreen, :pink, :blue),
+    show_pulse=true
+)
+    if use_raw
+        t   = pulse.raw.t
+        ft  = pulse.raw.fr_total
+        fR1 = pulse.raw.fr_R1
+        fR2 = pulse.raw.fr_R2
+        fC1 = pulse.raw.fr_C1
+        fC2 = pulse.raw.fr_C2
+        fG  = pulse.raw.fr_G
+    else
+        t   = pulse.t_grid
+        ft  = pulse.fr_total
+        fR1 = pulse.fr_components.fr_R1
+        fR2 = pulse.fr_components.fr_R2
+        fC1 = pulse.fr_components.fr_C1
+        fC2 = pulse.fr_components.fr_C2
+        fG  = pulse.fr_components.fr_G
+    end
+
+    m = t .>= tmin
+    tt  = t[m]
+    ft  = ft[m]
+    fR1 = fR1[m]; fR2 = fR2[m]
+    fC1 = fC1[m]; fC2 = fC2[m]
+    fG  = fG[m]
+
+    plt = plot(tt, ft;  label="total → P", xlabel="Time", ylabel="Community Consumption",
+               ylims=ylims, color=colors[1], linewidth=2.5, legend=false, framestyle=:box)
+    plot!(tt, fR1; label="R1 → P", color=colors[2], linewidth=2.5)
+    plot!(tt, fR2; label="R2 → P", color=colors[3], linewidth=2.5)
+    plot!(tt, fC1; label="C1 → P", color=colors[4], linewidth=2.5)
+    plot!(tt, fC2; label="C2 → P", color=colors[5], linewidth=2.5)
+    plot!(tt, fG;  label="G → P",  color=colors[6], linewidth=2.5)
+    plot!(tt, ft;  label="total → P",  color=colors[1], linewidth=2.5)
+
+    if show_pulse && (:pulse in propertynames(pulse))
+        ps = pulse.pulse.start
+        pe = pulse.pulse.end
+        vspan!([ps, pe]; alpha=0.1, label="", color=:gray)
+    end
+    return plt
+end
 
 p = ModelPar_active()
 test = pulse_unit_forced(p)
 
 ##Calculate decline for 3 different scenarios
-p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.2, K = 3.05, G_base = 1.0)
+p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.05, G_base = 1.0)
 pulse_1 = pulse_unit_forced(p1)
 
-p2 = ModelPar_active(o = 0.0, w = 1.0, H = 0.2, K = 3.05, G_base = 1.0)
+p2 = ModelPar_active(o = 0.0, w = 1.0, H = 0.5, K = 3.05, G_base = 1.0)
 pulse_2 = pulse_unit_forced(p2)
 
 
 p3 = ModelPar_active(o = 0.0, w = 0.0, H = 1.0, K = 3.05, G_base = 1.0)
 pulse_3 = pulse_unit_forced(p3)
 
-plot_pulse_timeseries(pulse_1; tmin=150.0)
-plot_pulse_timeseries(pulse_2; tmin=150.0)
-plot_pulse_timeseries(pulse_3; tmin=150.0)
+plot_pulse_timeseries_2(pulse_1; tmin=150.0)
+plot_pulse_timeseries_2(pulse_2; tmin=150.0)
+plot_pulse_timeseries_2(pulse_3; tmin=150.0)
 
+plot_pulse_timeseries(pulse_1; tmin=150.0)
 
 
 ###Plot relative decline
@@ -202,16 +252,16 @@ labels = [
 ]
 
 # Convert to % for display (optional but nice)
-declines_pct = 100 .* declines
+declines_pct = (100 .* declines)
 resilience = 1 ./ declines
 # Bar plot (no legend)
-res_plot = bar(labels, resilience;
+res_plot = bar(labels, declines_pct;
     legend = false,
-    ylabel = "Food System Resilience \n(1/relative total harvest decline)",
+    ylabel = "% Food Consumption Decline",
     xlabel = "",
     framestyle = :box,
     xrotation = 15,
-    yticks = :auto, ylims = (0,27), color = :black, size=(600, 800))
+    yticks = :auto, ylims = (0.0, 40),  color = :black, size=(600, 800))
 
 savefig(res_plot, "resilience_plot")
 
