@@ -1,28 +1,31 @@
 ##Looking at CV and min of harvest rates (P consumption)
-
+using Pkg
+Pkg.add("Colors")
+using Colors
 ##source model 
 #include("wf_model_eqs_subsidy.jl")
 
 include("wf_model_eqs_subsidy_Pfixed.jl")
 
-
+u0 = [1.5, 1.5, 1.0, 1.0, 0.5]
 
 ##Look at across range of parameters
 results_K_uf = []
 for K in 1.0:0.1:3.6
-    pᵢ = ModelPar_active(w=0.5, o=0.5, H=0.0, K=K)  # add other defaults as needed
-    cv_nt = fr_cv_unforced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    p = ModelPar_active(w=0.5, o=0.5, H=0.0, K=K)  # add other defaults as needed
+    cv_nt = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_K_uf, (; K, cv_nt...))  # NamedTuple splat into the row
 end
 df_cv_K = DataFrame(results_K_uf)
+
 
 plot(df_cv_K.K, df_cv_K.cv_total, xlabel = "K", ylabel = "CV total harvest")
 
 
 results_K_f = []
 for K in 1.0:0.1:3.6
-    pᵢ = ModelPar_active(w=0.5, o=0.5, H=0.0, K=K, l = 0.5)  # add other defaults as needed
-    cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    p = ModelPar_active(w=0.5, o=0.5, H=0.0, K=K, l = 0.5)  # add other defaults as needed
+    cv_nt = fr_cv_forced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
     push!(results_K_f, (; K, cv_nt...))  # NamedTuple splat into the row
 end
 df_cv_K = DataFrame(results_K_f)
@@ -198,7 +201,7 @@ for H in 0.0:0.1:1.0
 end
 df_cv_w = DataFrame(results_H_f)
 
-plot(df_cv_w.H, df_cv_w.cv_total, label = "total consumption", xlabel = "H", ylabel = "CV")
+plot(df_cv_w.H, df_cv_w.cv_total, label = "total consumption", xlabel = "Grocery Preference (H)", ylabel = "CV of Total Harvest", color = :black, linewidth = 2.5, legend = false)
 plot!(df_cv_w.H, df_cv_w.cv_R1, label = "R1 consumption", xlabel = "H", ylabel = "CV")
 plot!(df_cv_w.H, df_cv_w.cv_R2, label = "R2 consumption", xlabel = "H", ylabel = "CV")
 plot!(df_cv_w.H, df_cv_w.cv_C1, label = "C1 consumption", xlabel = "H", ylabel = "CV")
@@ -243,7 +246,8 @@ w_vals = 0.0:0.1:1.0
 
 results_grid = []
 for o in o_vals, w in w_vals
-    pᵢ = ModelPar_active(o = o, w = w, H = 0.9, K = 3.05)
+      u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(o = o, w = w, H = 0.0, K = 3.05)
  # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
@@ -262,12 +266,23 @@ sort!(w_vals)
 cv_total_mat = [df_cv_o_w[(df_cv_o_w.o .== o) .& (df_cv_o_w.w .== w), :cv_total][1] for w in w_vals, o in o_vals]
 
 # Plot heatmap
+##define custom breakpoints in color gradient:
+colors = cgrad(:viridis, [0, 0.025, 0.05, 0.075, 0.1, 0.125, 6], rev=false)  # adjust mapping
+
+colors = cgrad(vcat(
+    range(colorant"#1C0536", stop=colorant"#26B8E0", length=2),  # low end of viridis
+    repeat([colorant"#2FE026"], 35),                             # flat middle
+    range(colorant"#E0C426", stop=colorant"#EBCA13", length=20)  # bright high end
+))
+
+
+
 heatmap(o_vals, w_vals, cv_total_mat;
         xlabel = "Omnivory Preference (o)",
         ylabel = "Habitat Preference (w)",
-        title = "CV of Total Harvest",
-        colorbar_title = "CV",
-        c = :viridis)
+        colorbar_title = "CV of Total Harvest",
+        c = colors,
+        clim = (0,6))
 
 ##unforced model
 o_vals = 0.0:0.1:1.0

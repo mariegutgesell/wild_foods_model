@@ -112,7 +112,7 @@ function equilibrium_unforced(p, t; frac_window=0.1, n_window=1000)
     # equilibrium via root-finding using terminal state as initial guess
     u_approx = sol(t)                     # state at time t
     eq = nlsolve((du, u) -> model_unforced!(du, u, deepcopy(p), 0.0), u_approx).zero
-
+    ##can ask eq to only detect coexistence equilibrium, and feed that into M #####
     # compute stability metrics from community matrix
     M       = cmat(eq, p)
     λ1      = λ1_stability(M)
@@ -171,6 +171,10 @@ for K in 3.0:0.1:8.0
     push!(results_K_all, (; K=K, eq_data...))
 end
 df_eq = DataFrame(results_K_all)
+
+p = ModelPar_test_1(Z = 1.0)
+t = 100
+k_sol = equilibrium_unforced(p, t)
 
 plot(df_eq.K, df_eq.λ1)
 

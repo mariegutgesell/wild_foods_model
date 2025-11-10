@@ -834,7 +834,7 @@ end
 ##STRUCTURE 1: Plotting dynamics, equilibrium, eigenvalue analysis 
 ##Solve ODE 
 ##set initial condition
-u0 = [1.5, 1.5, 1.0, 1.0, 1.0]
+u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 #u0 = [0.6, 0.8, 0.45, 0.61, 0.2]
 
 tspan = (0.0, 500.0)
@@ -848,9 +848,10 @@ t_recover = 250.0 ##time when decline in resources ends
 #p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.5153846153846153, K = 3.6690421064496563, aR_C = 0.7115170954937349, aR_P = 0.2498541064605251, aC_P = 2.6321394767838195, aG_P = 0.14805976913072363, hR_P = 1.103846153846154, hR_C = 1.326923076923077, hC_P = 0.21153846153846156, hG_P = 1.9961538461538462, e = 0.8076923076923078, mC = 0.2965384615384616, G = 5.0)
 #p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.3375, K = 2.032403975305357, aR_C = 3.6465635168468427, aR_P = 1.6770337454379123, aC_P = 1.364743186162275, aG_P = 1.2649240656786647, hR_P = 1.578125, hR_C = 0.56875, hC_P = 1.7375, hG_P = 0.640625, e = 0.41250000000000003, mC = 0.79375, G = 9.15625, l = 0.84375, pf = 2.578125, D = 0.96875)
 #p = ModelPar_active(o = 0.5, w = 0.5, H = 0.0, l = 0.5, G_func = G_func, aC_P = 1.0)
-p = ModelPar_active(o = 0.5, w = 0.5, H = 0.0, r = 2.4615384615384617, K = 2.6526992396913758, aR_C = 1.462707059363315, aR_P = 1.820503608612226, aC_P = 1.0872235200670002, aG_P = 2.3815152855159076, hR_P = 0.6730769230769231, hR_C = 0.7, hC_P = 1.8615384615384616, hG_P = 1.1346153846153846, e = 0.5961538461538461, mC = 0.826923076923077, G = 9.653846153846153)
+#p = ModelPar_active(o = 0.5, w = 0.5, H = 0.0, r = 2.4615384615384617, K = 2.6526992396913758, aR_C = 1.462707059363315, aR_P = 1.820503608612226, aC_P = 1.0872235200670002, aG_P = 2.3815152855159076, hR_P = 0.6730769230769231, hR_C = 0.7, hC_P = 1.8615384615384616, hG_P = 1.1346153846153846, e = 0.5961538461538461, mC = 0.826923076923077, G = 9.653846153846153)
+p = ModelPar_active(o = 1.0, w = 1.0, H = 0.0, K = 3.05)
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
 ##also this ODE solver is working, why in function am i then getting NAs/Infs in matrix? 
@@ -869,8 +870,7 @@ plot(sol_1, tspan=(400, 500),
     println("t=$t, W=$W, o=$o, H=$H")
 end
 
-##Look at predator consumption  
-
+##Look at predator consumption 
 
 fr_vals_1 = [total_FR_into_P(u, p, t) for (u, t) in zip(sol_1.u, sol_1.t)]
 
@@ -884,45 +884,49 @@ fr_G = [x[6] for x in fr_vals_1]
 times = sol_1.t
 
    ##plot total P consumption 
-plot(times, fr_total, label = "total → P", xlabel = "Time", ylabel = "Predator Consumption", ylims = (0, 1.0))  
-plot!(times, fr_R1, label = "R1 → P")
-plot!(times, fr_R2, label = "R2 → P")
-plot!(times, fr_C1, label = "C1 → P")
-plot!(times, fr_C2, label = "C2 → P")
-plot!(times, fr_G, label = "G → P")
+   colors = [:black, :darkgreen, :salmon, :lightgreen, :pink, :blue]
+
+plot(times, fr_total, label = "total → P", xlabel = "Time", ylabel = "Predator Consumption", ylims = (0, 1.0), color = colors[1], linewidth = 2.5)  
+plot!(times, fr_R1, label = "R1 → P", color = colors[2], linewidth = 2.5)
+plot!(times, fr_R2, label = "R2 → P", color = colors[3], linewidth = 2.5)
+plot!(times, fr_C1, label = "C1 → P", color = colors[4], linewidth = 2.5)
+plot!(times, fr_C2, label = "C2 → P", color = colors[5], linewidth = 2.5)
+plot!(times, fr_G, label = "G → P", color = colors[6], linewidth = 2.5)
+
+#plot without legend
+plot(times, fr_total, xlabel = "Time", ylabel = "Predator Consumption", ylims = (0, 1.0), color = colors[1], linewidth = 2.5, legend = false)  
+plot!(times, fr_R1,  color = colors[2], linewidth = 2.5)
+plot!(times, fr_R2,  color = colors[3], linewidth = 2.5)
+plot!(times, fr_C1,  color = colors[4], linewidth = 2.5)
+plot!(times, fr_C2, color = colors[5], linewidth = 2.5)
+plot!(times, fr_G, color = colors[6], linewidth = 2.5)
+plot!(times, fr_total,color = colors[1], linewidth = 2.5)  
 
 
-##trying to calculate CV of harvest rates
-cv(x) = std(x) / mean(x)
 
-# calculate CVs
-cv_vals = [
-    cv(fr_total),
-    cv(fr_R1),
-    cv(fr_R2),
-    cv(fr_C1),
-    cv(fr_C2),
-    cv(fr_G)
-]
+##Plot consumption dynamics after reaching equilibrium
+# Find index where time >= 250
+start_idx = findfirst(t -> t ≥ 250, times)
 
-labels = ["Total", "R1 → P", "R2 → P", "C1 → P", "C2 → P", "G → P"]
+# Subset time and consumption arrays
+times_sub_4 = times[start_idx:end]
+fr_total_sub = fr_total[start_idx:end]
+fr_R1_sub = fr_R1[start_idx:end]
+fr_R2_sub = fr_R2[start_idx:end]
+fr_C1_sub = fr_C1[start_idx:end]
+fr_C2_sub = fr_C2[start_idx:end]
+fr_G_sub = fr_G[start_idx:end]
 
-bar(labels, cv_vals,
-    xlabel = "Flux into Predator",
-    ylabel = "Coefficient of Variation (CV)",
-    legend = false,
-    color = :steelblue,
-    title = "Predator Consumption CV"
-)
+# Define custom colors (optional - adjust as needed)
+colors = [:black, :darkgreen, :salmon, :lightgreen, :pink, :red]
 
-
-min_total = minimum(fr_total)
-min_R1    = minimum(fr_R1)
-min_R2    = minimum(fr_R2)
-min_C1    = minimum(fr_C1)
-min_C2    = minimum(fr_C2)
-min_G     = minimum(fr_G)
-
+# Plot
+plot(times_sub_4, fr_total_sub, label = "total → P", xlabel = "Time", ylabel = "Community Consumption", ylims = (0.0, 1.25), color = colors[1], linewidth = 2.5)
+plot!(times_sub_4, fr_R1_sub, label = "R1 → P", color = colors[2],linewidth = 2.5)
+plot!(times_sub_4, fr_R2_sub, label = "R2 → P", color = colors[3],linewidth = 2.5)
+plot!(times_sub_4, fr_C1_sub, label = "C1 → P", color = colors[4],linewidth = 2.5)
+plot!(times_sub_4, fr_C2_sub, label = "C2 → P", color = colors[5],linewidth = 2.5)
+plot!(times_sub_4, fr_G_sub, label = "G → P", color = colors[6],linewidth = 2.5)
 
 
 
