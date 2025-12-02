@@ -19,16 +19,16 @@ using StatsPlots
 include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
 
 ##not sure if need to redefine model_par, i think may be okay to call from my wf_model code 
-
+##1) Sensitivity analysis just for structure -- so keeping H at 0 (constant)
 # --- Bounds: focal vs nuisance ---
-focal_syms    = (:o, :w, :H)   # change to your three
-nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
+focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
+nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
 # Ranges (examples—replace with yours)
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
-    :H => (0.0, 1.0),
+    :H => (0.0, 0.0), ##is this a way to make sure it is always 0 ? 
     :r => (0.2, 3.0),
     :K => (1.0, 3.8),
     :aR_P => (1.0, 2.5),
@@ -70,6 +70,16 @@ map_to_range(x, lo, hi; logscaled=false) =
 ##x is the sampled value (between 0 and 1) and lo is the low end of range, and hi is the high end of range 
 ##log scaled is to give a log-uniform distribution, good for parameters that span orders of magnitude 
 
+##create function to test if parameters yield biologically feasible equilibrium
+function is_feasible_paramset(p::ModelPar_active; P0=0.25, tol=1e-3)
+    try
+        out = equilibrium_unforced(p, P0)
+        eq = out.eq
+        return all(x -> isfinite(x) && x > tol, eq)
+    catch
+        return false
+    end
+end
 
 # Draw N samples of nuisance params with LHS
 function sample_nuisance(N::Int; rng=Random.default_rng())
@@ -88,20 +98,62 @@ function sample_nuisance(N::Int; rng=Random.default_rng())
     samples
 end
 
+##trying new constrained sampling - constraining 
+function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries = 10000)
+    d = length(nuisance_syms)
+    feasible = NamedTuple[]
+    tries = 0
 
+    while length(feasible) < N && tries < max_tries
+        # Draw one batch of LHS points (batch_size can be tuned)
+        batch_size = max(N, 50)
+        X = QuasiMonteCarlo.sample(d, batch_size, LatinHypercubeSample())
+
+        for i in 1:batch_size
+            pairs = ntuple(j -> begin
+                s = nuisance_syms[j]
+                lo, hi = bounds[s]
+                val = map_to_range(X[i,j], lo, hi; logscaled = (s in logscale))
+                (s => val)
+            end, d)
+            ν = NamedTuple(pairs)
+
+            # Build model params with default focal params (e.g., baseline o,w,H)
+            p = ModelPar_active(p0; o=0.5, w=0.5, H=0.5,
+                r=ν.r, K=ν.K, aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P,
+                aR_C=ν.aR_C, hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P,
+                hR_C=ν.hR_C, e=ν.e, mC=ν.mC, G=ν.G)
+
+            # Check feasibility
+            if is_feasible_paramset(p)
+                push!(feasible, ν)
+                if length(feasible) ≥ N
+                    break
+                end
+            end
+            tries += 1
+        end
+    end
+
+    if length(feasible) < N
+        @warn "Only found $(length(feasible)) feasible samples after $tries draws"
+    end
+    return feasible[1:min(end, N)]
+end
 
 ##Calculate robustness surface for 3 focal parameters
 
 # Grids for the 3 focal parameters
 o_grid = range(bounds[:o]...; length=11)
 w_grid = range(bounds[:w]...; length=11)
-H_grid = range(bounds[:H]...; length=3)
+#H_grid = range(bounds[:H]...; length=3)
 
 Nrep = 3  # random nuisance samples per grid point (tune)
 
 # Pre-sample nuisance once to reuse (or sample per cell if you prefer)
 rng = MersenneTwister(42)
-nuisance_pool = sample_nuisance(Nrep; rng)
+p0 = ModelPar_active()
+nuisance_pool = sample_nuisance_constrained(Nrep; rng)
 
 ##need to add conditions so that sampled parameter combinations satisfy inequalities that allow for persistence in an unforced model 
 
@@ -113,11 +165,11 @@ nuisance_pool = sample_nuisance(Nrep; rng)
 #stab_iqr = similar(CV_med)
 
 # Build parameter from focal + nuisance sample
-const p0 = ModelPar_active()
+#const p0 = ModelPar_active()
 
 ##this approach copies the parameters from pO and only overrides the ones indicated after the ; (so keeps the function parameters)
-function make_par(o, w, H, ν::NamedTuple)
-    return ModelPar_active(p0; o=o, w=w, H=H,
+function make_par(o, w, ν::NamedTuple)
+    return ModelPar_active(p0; o=o, w=w, H=ν.H,
         r=ν.r, K=ν.K,
         aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P, aR_C=ν.aR_C,  # <- check names
         hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P, hR_C=ν.hR_C,  # <- check names
@@ -126,31 +178,31 @@ function make_par(o, w, H, ν::NamedTuple)
 end
 
 # Allocate a cell array that stores all runs for each (o,w,H)-- for unforced model 
-runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
+runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
 
 @info "Running robustness grid..."
-for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
+for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
     P0 = 0.25
-    u0 = [1.5, 1.5, 1.5, 1.5, 0.25]
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
     stability_df = NamedTuple[]
     for s in nuisance_pool
-        p = make_par(o, w, H, s)
+        p = make_par(o, w, s)
         try
             out_1 = equilibrium_unforced(p, P0)  # e.g. returns (cv=..., λ1=..., ...)
             out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)  # e.g. returns (cv=..., λ1=..., ...)
             # Store the full parameter set + outputs in one record
-            rec = (; o, w, H, s..., C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],λ1 = out_1.λ1,R1_eq = out_1.eq[1], R2_eq = out_1.eq[2],
+            rec = (; o, w, s..., C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],λ1 = out_1.λ1,R1_eq = out_1.eq[1], R2_eq = out_1.eq[2],
             C1_eq = out_1.eq[3], C2_eq = out_1.eq[4], cv_total = out_2.cv_total, cv_R1 = out_2.cv_R1, cv_R2 = out_2.cv_R2, cv_C1 = out_2.cv_C1,cv_C2 = out_2.cv_C2,cv_G = out_2.cv_G)
             push!(stability_df, rec)
-            push!(runs_stab_unforced[io,iw,iH], rec)
+            push!(runs_stab_unforced[io,iw], rec)
         catch err
-            @warn "Fail at (o=$o, w=$w, H=$H): $err"
+            @warn "Fail at (o=$o, w=$w): $err"
         end
     end
 end
 @info "Done."
 
-cell = runs_stab_unforced[1,1,1]
+cell = runs_stab_unforced[6,6]
 cell[2]
 
 # Allocate a cell array that stores all runs for each (o,w,H) - for forced model
@@ -189,36 +241,35 @@ cell[3]
 
 
 ##filter out only stable coexistence (i.e., where there is some persistence of all species at equilibrium)
-eps = 1e-8
-No, Nw, NH = length(o_grid), length(w_grid), length(H_grid)
+eps = 1e-3
+No, Nw = length(o_grid), length(w_grid)
 predicate = r -> (r.R1_min >eps && r.R2_min > eps && r.C1_min > eps && r.C2_min > eps)
-final_runs = [ filter(predicate, runs_stab[i,j,k])
-                       for i in 1:No, j in 1:Nw, k in 1:NH ]
+final_runs_unforced = [ filter(predicate, runs_stab_unforced[i,j])
+                       for i in 1:No, j in 1:Nw]
 #print(final_runs)
 
 
 ##See if I can extract cv/eigenvalue from all possible combinations for each set of nuisance parameters
-N_nuisance = length(final_runs[1,1,1])
-N_nuisance = length(runs_stab[1,1,1])
-same_nuisance_results = [ [runs_stab[i,j,k][n] for i in 1:length(o_grid),
-                                         j in 1:length(w_grid),
-                                         k in 1:length(H_grid)]
+N_nuisance = length(final_runs_unforced[1,1])
+N_nuisance = length(runs_stab_unforced[1,1])
+same_nuisance_results = [ [runs_stab_unforced[i,j][n] for i in 1:length(o_grid),
+                                         j in 1:length(w_grid)]
                           for n in 1:N_nuisance ]
 
 ##Seeing if I can plot cv for a single nuisance Draw
-n = 6 ##this is the nuisance draws
-kH = 1 ##this is the slice of K 
+n = 3 ##this is the nuisance draws
+
 
 ##extract the data for that draw 
 res_n = same_nuisance_results[n]
 
 ##turn it back into a matrix over oxw for that fixed H 
-No, Nw, NH = length(o_grid), length(w_grid), length(H_grid)
+No, Nw= length(o_grid), length(w_grid)
 
 
-cv_total_h = [res_n[(i-1)*Nw*NH + (j-1)*NH + kH].cv_total for j in 1:Nw, i in 1:No]
+cv_total_h = [res_n[1].cv_total for j in 1:Nw, i in 1:No]
 ##now Plot 
-heatmap(o_grid, w_grid, cv_total_h; xlabel = "o", ylabel = "w", title = "CV of total harvest for nuisance draw $n at H=$(H_grid[kH])", colorbar_title = "cv total harvest")
+heatmap(o_grid, w_grid; xlabel = "o", ylabel = "w", title = "CV of total harvest for nuisance draw $n at H = 0", colorbar_title = "cv total harvest")
 
 
 

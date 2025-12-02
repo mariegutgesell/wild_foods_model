@@ -262,6 +262,21 @@ end
 xlabel!("Time")
 ylabel!("Total Harvest")
 
+##or plotting them separate:
+colors = [:blue, :orange, :green]
+
+for (i, r) in enumerate(results)
+    plt = plot(r.t, r.fr_total;
+               color = colors[i],
+               label = "H = $(r.H)",
+               linewidth = 2.5,
+               ylims = (0.6, 0.7),
+               xlabel = "Time",
+               ylabel = "Total Harvest",
+               size = (850, 600))
+    display(plt)
+end
+
 
 ##trying heatmap of CV of total harvest
 
