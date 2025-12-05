@@ -1,7 +1,9 @@
 ##Looking at CV and min of harvest rates (P consumption)
 using Pkg
-Pkg.add("Colors")
+#Pkg.add("CairoMakie")
+#Pkg.add("Colors")
 using Colors
+using CairoMakie
 ##source model 
 #include("wf_model_eqs_subsidy.jl")
 
@@ -286,7 +288,7 @@ w_vals = 0.0:0.1:1.0
 results_grid = []
 for o in o_vals, w in w_vals
       u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(o = o, w = w, H = 0.9, K = 3.05)
+    pᵢ = ModelPar_active(o = o, w = w, H = 0.0, K = 3.05)
  # set/adjust other params as you need
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=600)
     push!(results_grid, (; o, w, cv_nt...))
@@ -304,24 +306,73 @@ sort!(w_vals)
 # Create matrix for cv total
 cv_total_mat = [df_cv_o_w[(df_cv_o_w.o .== o) .& (df_cv_o_w.w .== w), :cv_total][1] for w in w_vals, o in o_vals]
 
-# Plot heatmap
-##define custom breakpoints in color gradient:
-#colors = cgrad(:viridis, [0, 0.025, 0.05, 0.075, 0.1, 0.125, ], rev=false)  # adjust mapping
+##Plot heatmap using Makie to try and get the two legends
 
-colors = cgrad(vcat(
-    range(colorant"#1C0536", stop=colorant"#26B8E0", length=2),  # low end of viridis
-    repeat([colorant"#2FE026"], 35),                             # flat middle
-    range(colorant"#E0C426", stop=colorant"#EBCA13", length=20)  # bright high end
-))
+# Split into two matrices:
+low  = copy(cv_total_mat)
+high = copy(cv_total_mat)
+
+# Keep only low values ≤ 0.14
+low[low .> 0.14] .= NaN
+
+# Keep only high values ≥ 5.5
+high[high .< 5.5] .= NaN
 
 
-##main fig 
-heatmap(o_vals, w_vals, cv_total_mat;
-        xlabel = "Omnivory Preference (o)",
-        ylabel = "Habitat Preference (w)",
-        colorbar_title = "CV of Total Harvest",
-        c = colors,
-        clim = (0,6))
+fig = CairoMakie.Figure(size = (800, 600))
+ax  = CairoMakie.Axis(fig[1, 1],xlabel = "Omnivory Preference (o)", ylabel = "Habitat Preference (w)", aspect = 1,     xlabelsize = 22,   ylabelsize = 22,   xticklabelsize = 14, yticklabelsize = 14)
+
+# Transparent color for NaNs
+trans = CairoMakie.RGBAf(0, 0, 0, 0)
+
+# Small range heatmap
+hm_low = CairoMakie.heatmap!(ax, o_vals, w_vals, 
+    low'; ##the "'" transposes the matrix so it has the right x and y orientation
+    colorrange = (0.0, 0.14),
+    colormap   = :viridis,
+    nan_color   = trans,
+   # flexible = false,
+)
+
+# Big range heatmap (overlaid)
+hm_high = CairoMakie.heatmap!(ax, o_vals, w_vals, high';
+    colorrange = (5.5, 6.3),
+    colormap   = :reds,
+    nan_color   = trans,
+   # flexible = false,
+)
+
+# Ticks & limits 0–1 (adjust step if needed)
+ax.xticks = 0.0:0.2:1.0
+ax.yticks = 0.0:0.2:1.0
+#CairoMakie.xlims!(ax, 0.0, 1.0)
+#CairoMakie.ylims!(ax, 0.0, 1.0)
+
+# Two separate colorbars
+# Right-hand column just for the stacked colorbars
+cbcol = fig[1, 2] = GridLayout()
+
+# Stack them: row 1 = high range, row 2 = low range
+cb_high = Colorbar(cbcol[1, 1], hm_high;
+    label  = "5.5–6.3",
+    vertical = true,
+)
+
+cb_low  = Colorbar(cbcol[2, 1], hm_low;
+    label  = "0–0.14",
+    vertical = true,
+)
+
+# Make sure they have *exactly* the same width,
+# so they line up perfectly in that column
+colsize!(cbcol, 1, Fixed(22))
+fig
+
+
+
+
+
+
 
 ##heatmap for supplement - just have different colour scale 
 colors_2 = cgrad(vcat(
@@ -367,3 +418,5 @@ heatmap(o_vals, w_vals, cv_total_mat;
         title = "CV of Total Harvest",
         colorbar_title = "CV",
         c = :viridis)        
+
+        
