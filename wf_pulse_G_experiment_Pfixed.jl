@@ -223,11 +223,11 @@ test = pulse_unit_forced(p)
 p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.05, G_base = 1.0)
 pulse_1 = pulse_unit_forced(p1)
 
-p2 = ModelPar_active(o = 0.0, w = 1.0, H = 0.5, K = 3.05, G_base = 1.0)
+p2 = ModelPar_active(o = 0.2, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
 pulse_2 = pulse_unit_forced(p2)
 
 
-p3 = ModelPar_active(o = 0.0, w = 0.0, H = 1.0, K = 3.05, G_base = 1.0)
+p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
 pulse_3 = pulse_unit_forced(p3)
 
 plot_pulse_timeseries_2(pulse_1; tmin=150.0)
@@ -250,9 +250,9 @@ declines = [
 ]
 
 labels = [
-    "o=0.1, w=0.5, H=0.2, K=3.05",
-     "o=0.0, w=1.0, H=0.2, K=3.05",
-    "o=0.0, w=0.0, H=1.0, K=3.05"
+    "o=0.1, w=0.5, H=0.5",
+     "o=0.2, w=0.0, H=0.5",
+    "o=0.0, w=0.0, H=0.5"
 ]
 
 # Convert to % for display (optional but nice)
@@ -265,7 +265,7 @@ res_plot = bar(labels, declines_pct;
     xlabel = "",
     framestyle = :box,
     xrotation = 15,
-    yticks = :auto, ylims = (0.0, 40),  color = :black, size=(600, 800))
+    yticks = :auto, ylims = (0.0, 30),  color = :black, size=(600, 800))
 
 savefig(res_plot, "resilience_plot")
 
@@ -287,7 +287,7 @@ plot(df_pulse_1.H, rel_decline_1, col = "red", ylabel = "Relative decline in har
 
 results_H_all_f_2 = []
 for H in 0.1:0.1:1.0
-    p = ModelPar_active(w = 0.5, o = 0.1, H=H, l = 0.5)
+    p = ModelPar_active(w = 0.0, o = 0.2, H=H, l = 0.5)
     P0 = 0.25
     eq_data = pulse_unit_forced(p)
     push!(results_H_all_f_2, (; H=H, eq_data...))
@@ -301,7 +301,7 @@ plot(df_pulse_2.H, rel_decline_2,  ylabel = "Relative decline in harvest after p
 
 results_H_all_f_3 = []
 for H in 0.1:0.1:1.0
-    p = ModelPar_active(w = 1.0, o = 0.0, H=H, l = 0.5)
+    p = ModelPar_active(w = 0.5, o = 0.1, H=H, l = 0.5)
     P0 = 0.25
     eq_data = pulse_unit_forced(p)
     push!(results_H_all_f_3, (; H=H, eq_data...))
@@ -313,9 +313,9 @@ rel_decline_3 = [row.decline_rel_baseline[1] for row in eachrow(df_pulse_3)]
 plot(df_pulse_3.H, rel_decline_3,  ylabel = "Relative decline in harvest after perturbation", xlabel = "H", label = "o = 0.0, w = 1.0")
 
 ##trying to see if i can plot all 3 together
-plot(df_pulse_1.H, rel_decline_1, color = :black, linestyle = :solid, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0, w = 0", linewidth = 2.5, size=(600, 800))
-plot!(df_pulse_2.H, rel_decline_2, color = :black, linestyle = :dash,  ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.1, w = 0.5", linewidth = 2.5, size=(600, 800))
-plot!(df_pulse_3.H, rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.0, w = 1.0", linewidth = 2.5, size=(600, 800))
+plot(df_pulse_1.H, rel_decline_1, color = :black, linestyle = :solid, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0, w = 0", linewidth = 2.5)
+plot!(df_pulse_2.H, rel_decline_2, color = :black, linestyle = :dash,  ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.2, w = 0", linewidth = 2.5)
+plot!(df_pulse_3.H, rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.1, w = 0.5", linewidth = 2.5)
 
 
 

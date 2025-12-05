@@ -119,7 +119,7 @@ function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries
             ν = NamedTuple(pairs)
 
             # Build model params with default focal params (e.g., baseline o,w,H)
-            p = ModelPar_active(p0; o=0.5, w=0.5, H=0.5,
+            p = ModelPar_active(p0; o=0.5, w=0.5, H=0.0,
                 r=ν.r, K=ν.K, aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P,
                 aR_C=ν.aR_C, hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P,
                 hR_C=ν.hR_C, e=ν.e, mC=ν.mC, G=ν.G)
@@ -141,6 +141,10 @@ function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries
     return feasible[1:min(end, N)]
 end
 
+##constraining: may need to try different constraints - -with and without H - when is 0 and 0.5 
+##could randomly choose anchors - then do different draws for different constrained anchor points - could try center and 4 corners 
+##could set seed so make sure all draws are the same/saved 
+##do we want to to constrain so that all 121 o-w combinations give coexistence - this might be better than anchoring to o=w=0.5
 ##Calculate robustness surface for 3 focal parameters
 
 # Grids for the 3 focal parameters
@@ -201,7 +205,7 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
     end
 end
 @info "Done."
-
+##look into parallel this 
 cell = runs_stab_unforced[6,6]
 cell[2]
 
@@ -274,8 +278,8 @@ heatmap(o_grid, w_grid; xlabel = "o", ylabel = "w", title = "CV of total harvest
 
 
 ##seeing if i can calculate % of runs where certain combinations of o and w create the lowest cv of total harvest
-No, Nw, NH = size(final_runs)
-kH = 1  # choose the H slice you want
+No, Nw = size(final_runs_unforced)
+#kH = 1  # choose the H slice you want
 
 # Map parameter values to indices (helps when records only carry values)
 iof = Dict(o_grid[i] => i for i in 1:No)
@@ -284,7 +288,7 @@ jof = Dict(w_grid[j] => j for j in 1:Nw)
 # Collect all nuisance IDs present at this H slice
 n_ids = Set{Int}()
 for i in 1:No, j in 1:Nw
-    for r in final_runs[i,j,kH]
+    for r in final_runs_unforced[i,j]
         push!(n_ids, r.n_id)
     end
 end

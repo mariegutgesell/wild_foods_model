@@ -242,7 +242,7 @@ bar(
     bar_width = 0.8
 )
 
-
+##FIGURE 4 ----------------
 ##try and see if can get time series of total harvest for three different H values on same plot 
 function run_for_H(H; u0=[1.5,1.5,1.0,1.0,0.25], K=3.05)
     p = ModelPar_active(w=0.5, o=0.5, H=H, K=K)
@@ -280,6 +280,7 @@ for (i, r) in enumerate(results)
 end
 
 
+##FIGURE 2 -------------
 ##trying heatmap of CV of total harvest
 
 o_vals = 0.0:0.1:1.0

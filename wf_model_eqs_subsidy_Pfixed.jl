@@ -849,7 +849,7 @@ t_recover = 250.0 ##time when decline in resources ends
 #p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.3375, K = 2.032403975305357, aR_C = 3.6465635168468427, aR_P = 1.6770337454379123, aC_P = 1.364743186162275, aG_P = 1.2649240656786647, hR_P = 1.578125, hR_C = 0.56875, hC_P = 1.7375, hG_P = 0.640625, e = 0.41250000000000003, mC = 0.79375, G = 9.15625, l = 0.84375, pf = 2.578125, D = 0.96875)
 #p = ModelPar_active(o = 0.5, w = 0.5, H = 0.0, l = 0.5, G_func = G_func, aC_P = 1.0)
 #p = ModelPar_active(o = 0.5, w = 0.5, H = 0.0, r = 2.4615384615384617, K = 2.6526992396913758, aR_C = 1.462707059363315, aR_P = 1.820503608612226, aC_P = 1.0872235200670002, aG_P = 2.3815152855159076, hR_P = 0.6730769230769231, hR_C = 0.7, hC_P = 1.8615384615384616, hG_P = 1.1346153846153846, e = 0.5961538461538461, mC = 0.826923076923077, G = 9.653846153846153)
-p = ModelPar_active(o = 1.0, w = 1.0, H = 0.0, K = 3.05)
+p = ModelPar_active(o = 0.1, w = 0.5, H = 0.0, K = 3.05)
 ##Define the ODE problem
 prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
@@ -886,7 +886,7 @@ times = sol_1.t
    ##plot total P consumption 
    colors = [:black, :darkgreen, :salmon, :lightgreen, :pink, :blue]
 
-plot(times, fr_total, label = "total → P", xlabel = "Time", ylabel = "Predator Consumption", ylims = (0, 1.0), color = colors[1], linewidth = 2.5)  
+plot(times, fr_total, label = false, xlabel = "Time", ylabel = "Total Harvest", ylims = (0, 1.0), color = colors[1], linewidth = 2.5)  
 plot!(times, fr_R1, label = "R1 → P", color = colors[2], linewidth = 2.5)
 plot!(times, fr_R2, label = "R2 → P", color = colors[3], linewidth = 2.5)
 plot!(times, fr_C1, label = "C1 → P", color = colors[4], linewidth = 2.5)
