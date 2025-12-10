@@ -119,7 +119,7 @@ function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries
             ν = NamedTuple(pairs)
 
             # Build model params with default focal params (e.g., baseline o,w,H)
-            p = ModelPar_active(p0; o=0.5, w=0.5, H=0.0,
+            p = ModelPar_active(p0; o=0.5, w=0.5, H=0.5,
                 r=ν.r, K=ν.K, aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P,
                 aR_C=ν.aR_C, hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P,
                 hR_C=ν.hR_C, e=ν.e, mC=ν.mC, G=ν.G)
@@ -254,11 +254,11 @@ final_runs_unforced = [ filter(predicate, runs_stab_unforced[i,j])
 
 
 ##See if I can extract cv/eigenvalue from all possible combinations for each set of nuisance parameters
-N_nuisance = length(final_runs_unforced[1,1])
+N_nuisance_final = length(final_runs_unforced[1,1])
 N_nuisance = length(runs_stab_unforced[1,1])
-same_nuisance_results = [ [runs_stab_unforced[i,j][n] for i in 1:length(o_grid),
-                                         j in 1:length(w_grid)]
-                          for n in 1:N_nuisance ]
+same_nuisance_results = [ [runs_stab_unforced[i,j][n] for i in 1:No,
+                                         j in 1:Nw]
+                          for n in 1:N_nuisance] ##come back -- do we want this over all nuisane draws or just the final ones?
 
 ##Seeing if I can plot cv for a single nuisance Draw
 n = 3 ##this is the nuisance draws
@@ -267,55 +267,52 @@ n = 3 ##this is the nuisance draws
 ##extract the data for that draw 
 res_n = same_nuisance_results[n]
 
-##turn it back into a matrix over oxw for that fixed H 
-No, Nw= length(o_grid), length(w_grid)
+##turn it back into a matrix over oxw
+cv_total_mat = [res_n[i,j].cv_total for i in 1:No, j in 1:Nw]
 
 
-cv_total_h = [res_n[1].cv_total for j in 1:Nw, i in 1:No]
-##now Plot 
-heatmap(o_grid, w_grid; xlabel = "o", ylabel = "w", title = "CV of total harvest for nuisance draw $n at H = 0", colorbar_title = "cv total harvest")
-
+##now Plot with o on x and w on y, not the transpose of the matrix
+heatmap(o_grid, w_grid, cv_total_mat'; xlabel = "o", ylabel = "w", title = "CV of total harvest for nuisance draw $n at H = 0.5", colorbar_title = "cv total harvest")
+##this should be at H = 0, come back to this
 
 
 ##seeing if i can calculate % of runs where certain combinations of o and w create the lowest cv of total harvest
-No, Nw = size(final_runs_unforced)
-#kH = 1  # choose the H slice you want
+No, Nw = size(runs_stab_unforced)
+N_nuisance_final
+final_runs_unforced[1,1][1]
+runs_stab_unforced[1,1][1]
 
-# Map parameter values to indices (helps when records only carry values)
-iof = Dict(o_grid[i] => i for i in 1:No)
-jof = Dict(w_grid[j] => j for j in 1:Nw)
-
-# Collect all nuisance IDs present at this H slice
-n_ids = Set{Int}()
-for i in 1:No, j in 1:Nw
-    for r in final_runs_unforced[i,j]
-        push!(n_ids, r.n_id)
-    end
-end
 
 counts = zeros(Float64, No, Nw)  # use Float64 to split ties fairly if you want
 
-for nid in n_ids
-    # Gather cv_total across all (o,w) for this nuisance draw
+##to figure out -- are you doing this for all runs or just the ones w/ values <0.0001? need to double check and think through that filtering again 
+for n in 1:N_nuisance
     best_cv = Inf
     winners = Tuple{Int,Int}[]
+    
+    # scan all (o,w) for this nuisance draw n
     for i in 1:No, j in 1:Nw
-        # find the record for this (i,j) with matching n_id (there should be ≤1 after filtering)
-        recs = final_runs[i,j,kH]
-        idx = findfirst(r -> r.n_id == nid, recs)
-        if idx !== nothing
-            cv = recs[idx].cv_total
-            if isfinite(cv)
-                if cv < best_cv - eps(Float64)     # strictly better
-                    best_cv = cv
-                    empty!(winners); push!(winners, (i,j))
-                elseif abs(cv - best_cv) ≤ eps(Float64)  # tie
-                    push!(winners, (i,j))
-                end
+        recs = runs_stab_unforced[i,j]
+
+        # guard in case some cells have fewer draws
+        if n > length(recs)
+            continue
+        end
+
+        cv_test = recs[n].cv_total
+
+        if isfinite(cv_test)
+            if cv_test < best_cv - Base.eps(Float64)            # strictly better
+                best_cv = cv_test
+                empty!(winners)
+                push!(winners, (i,j))
+            elseif abs(cv_test - best_cv) ≤ Base.eps(Float64)   # tie
+                push!(winners, (i,j))
             end
         end
     end
-    # Award 1 "vote" split across ties
+
+    # give 1 "vote" split among tied winners
     credit = 1.0 / max(1, length(winners))
     for (i,j) in winners
         counts[i,j] += credit
@@ -329,10 +326,10 @@ pct = 100 .* counts ./ max(1, length(n_ids))
 # e.g., heatmap with o on x, w on y:
 using Plots
 heatmap(o_grid, w_grid, pct';  # transpose so o→x, w→y
-    xlabel="o", ylabel="w", colorbar_title="Winner %", title="Lowest CV_total frequency at H=$(H_grid[kH])")
+    xlabel="o", ylabel="w", colorbar_title="Winner %", title="Lowest CV_total frequency at H=0)")
 
 
-
+##okay this is still not working, get lots of 0s etc. need to dig into this more 
 
 
 
