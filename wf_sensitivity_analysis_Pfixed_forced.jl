@@ -181,36 +181,10 @@ function make_par(o, w, ν::NamedTuple)
         G=ν.G)
 end
 
-# Allocate a cell array that stores all runs for each (o,w,H)-- for unforced model 
-runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
-
-@info "Running robustness grid..."
-for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
-    P0 = 0.25
-    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    stability_df = NamedTuple[]
-    for s in nuisance_pool
-        p = make_par(o, w, s)
-        try
-            out_1 = equilibrium_unforced(p, P0)  # e.g. returns (cv=..., λ1=..., ...)
-            out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)  # e.g. returns (cv=..., λ1=..., ...)
-            # Store the full parameter set + outputs in one record
-            rec = (; o, w, s..., C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],λ1 = out_1.λ1,R1_eq = out_1.eq[1], R2_eq = out_1.eq[2],
-            C1_eq = out_1.eq[3], C2_eq = out_1.eq[4], cv_total = out_2.cv_total, cv_R1 = out_2.cv_R1, cv_R2 = out_2.cv_R2, cv_C1 = out_2.cv_C1,cv_C2 = out_2.cv_C2,cv_G = out_2.cv_G)
-            push!(stability_df, rec)
-            push!(runs_stab_unforced[io,iw], rec)
-        catch err
-            @warn "Fail at (o=$o, w=$w): $err"
-        end
-    end
-end
-@info "Done."
-##look into parallel this 
-cell = runs_stab_unforced[6,6]
-cell[2]
-
 
 ##trying version of function tat only calculates cv if feasible and keeps track if not feasible
+# Allocate a cell array that stores all runs for each (o,w,H)-- for unforced model 
+
 runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
 @info "Running robustness grid..."
 for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
@@ -312,7 +286,56 @@ cell[2]
 cell[3]
 
 
+##trying version of function tat only calculates cv if feasible and keeps track if not feasible
+runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
+@info "Running robustness grid..."
+for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
+    P0 = 0.25
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 
+    for s in nuisance_pool
+        p = make_par(o, w, s)
+
+        feasible = false
+        out_eq = nothing
+        out_cv = nothing
+
+        try
+            out_eq = equilibrium_forced_2(p, P0; t_warmup = 300.0, t_eval = 350.0, ngrid = 300, reltol = 1e-6, abstol = 1e-6) 
+            feasible = all(x -> isfinite(x) && x > 1e-3, out_eq.eq)
+
+        catch
+            feasible = false
+        end
+
+        rec = if feasible
+            (; o, w, s...,
+               feasible = true,
+               R1_eq = out_eq.eq[1], R2_eq = out_eq.eq[2],
+               C1_eq = out_eq.eq[3], C2_eq = out_eq.eq[4],
+               R1_min = out_eq.min[1], R2_min = out_eq.min[2],
+               C1_min = out_eq.min[3], C2_min = out_eq.min[4],
+               cv_total = out_cv.cv_total,
+               cv_R1 = out_cv.cv_R1, cv_R2 = out_cv.cv_R2,
+               cv_C1 = out_cv.cv_C1, cv_C2 = out_cv.cv_C2, cv_G = out_cv.cv_G)
+        else
+            (; o, w, s...,
+               feasible = false,
+               R1_eq = missing, R2_eq = missing,
+               C1_eq = missing, C2_eq = missing,
+               R1_min = missing, R2_min = missing,
+               C1_min = missing, C2_min = missing,
+               cv_total = missing,
+               cv_R1 = missing, cv_R2 = missing,
+               cv_C1 = missing, cv_C2 = missing, cv_G = missing)
+        end
+
+        push!(runs_stab_forced[io, iw], rec)
+    end
+end
+@info "Done."
+
+cell = runs_stab_unforced[6,6]
 
 
 
