@@ -209,6 +209,81 @@ end
 cell = runs_stab_unforced[6,6]
 cell[2]
 
+
+##trying version of function tat only calculates cv if feasible and keeps track if not feasible
+runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
+@info "Running robustness grid..."
+for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
+    P0 = 0.25
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+
+    for s in nuisance_pool
+        p = make_par(o, w, s)
+
+        feasible = false
+        out_eq = nothing
+        out_cv = nothing
+
+        try
+            out_eq = equilibrium_unforced(p, P0)
+            feasible = all(x -> isfinite(x) && x > 1e-3, out_eq.eq)
+
+            if feasible
+                out_cv = fr_cv_unforced(
+                    p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800
+                )
+            end
+        catch
+            feasible = false
+        end
+
+        rec = if feasible
+            (; o, w, s...,
+               feasible = true,
+               λ1 = out_eq.λ1,
+               R1_eq = out_eq.eq[1], R2_eq = out_eq.eq[2],
+               C1_eq = out_eq.eq[3], C2_eq = out_eq.eq[4],
+               R1_min = out_eq.min[1], R2_min = out_eq.min[2],
+               C1_min = out_eq.min[3], C2_min = out_eq.min[4],
+               cv_total = out_cv.cv_total,
+               cv_R1 = out_cv.cv_R1, cv_R2 = out_cv.cv_R2,
+               cv_C1 = out_cv.cv_C1, cv_C2 = out_cv.cv_C2, cv_G = out_cv.cv_G)
+        else
+            (; o, w, s...,
+               feasible = false,
+               λ1 = missing,
+               R1_eq = missing, R2_eq = missing,
+               C1_eq = missing, C2_eq = missing,
+               R1_min = missing, R2_min = missing,
+               C1_min = missing, C2_min = missing,
+               cv_total = missing,
+               cv_R1 = missing, cv_R2 = missing,
+               cv_C1 = missing, cv_C2 = missing, cv_G = missing)
+        end
+
+        push!(runs_stab_unforced[io, iw], rec)
+    end
+end
+@info "Done."
+
+cell = runs_stab_unforced[6,6]
+
+feasibility_prop = map(runs_stab_unforced) do cell
+    mean(getproperty.(cell, :feasible))
+end
+
+cv_median = map(runs_stab_unforced) do cell
+    cvs = [r.cv_total for r in cell if r.feasible]
+    isempty(cvs) ? missing : median(cvs)
+end
+
+ heatmap(o_grid, w_grid, cv_median;
+         xlabel = "o",
+         ylabel = "w",
+         title = "Median CV of total harvest for random feasible nuisance parameter draws",
+         colorbar_title = "cv total harvest")
+
+
 # Allocate a cell array that stores all runs for each (o,w,H) - for forced model
 runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
 

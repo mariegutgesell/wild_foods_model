@@ -17,8 +17,8 @@ using StatsPlots
 using Base.Threads
 
 ##source model - choose which based on which you want to investigate
-project_root = raw"C:\Users\mccan\Documents\Github\Gutgesell"
-include(joinpath(project_root, "wf_model_eqs_subsidy_Pfixed.jl")) ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
+#project_root = raw"C:\Users\mccan\Documents\Github\Gutgesell"
+include( "wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
 
 ## base parameter set to copy/override from
 const p0 = ModelPar_active()
@@ -28,7 +28,7 @@ const p0 = ModelPar_active()
 focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
 nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
-# Ranges (examples—replace with yours)
+# Ranges
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
@@ -71,10 +71,10 @@ map_to_range(x, lo, hi; logscaled=false) =
 #         eq = out.eq
 
 #         # Choose whichever criterion you’ve settled on; here’s the relaxed one:
-#         return all(isfinite, eq) && all(x -> x > tol, eq)
+#         return all(isfinite, eq) && all(x -> x > tol, eq) ##this does check in two steps -1) are all values in eq finite, two are they greater than tolerance
 
 #         # If you want the strict one instead, use:
-#         # return all(x -> isfinite(x) && x > tol, eq)
+#         # return all(x -> isfinite(x) && x > tol, eq) ##here does both criteria at the same time, slightly faster but maybe harder to see why failed 
 
 #     catch
 #         return false
@@ -115,7 +115,7 @@ function make_par(o::Real, w::Real, ν::NamedTuple)
 end
 
 # General version: H is a focal parameter, not taken from ν
-function make_par(o::Real, w::Real, H::Real, ν::NamedTuple)
+function make_par_forced(o::Real, w::Real, H::Real, ν::NamedTuple)
     ModelPar_active(p0;
         o = o, w = w, H = H,
         r = ν.r, K = ν.K,
@@ -495,119 +495,162 @@ attempts_grid
 # ## =================================================================================
 # ## Unforced robustness grid: use the feasible_pool_grid for each (o,w) in parallel
 # ## =================================================================================
-
+No, Nw = length(o_grid), length(w_grid)
 # # Allocate a cell array that stores all runs for each (o,w) -- for unforced model 
-# runs_stab_unforced = [NamedTuple[] for _ in 1:No, _ in 1:Nw]
+ runs_stab_unforced = [NamedTuple[] for _ in 1:No, _ in 1:Nw]
 
-# @info "Running robustness grid for UNFORCED model..."
-# @threads for idx in 1:(No * Nw)
-#     io = fld(idx-1, Nw) + 1
-#     iw = mod(idx-1, Nw) + 1
-#     o = o_grid[io]
-#     w = w_grid[iw]
+ @info "Running robustness grid for UNFORCED model..."
+ @threads for idx in 1:(No * Nw)
+     io = fld(idx-1, Nw) + 1
+     iw = mod(idx-1, Nw) + 1
+     o = o_grid[io]
+     w = w_grid[iw]
 
-#     P0 = 0.25
-#     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-#     local_runs = NamedTuple[]
+     P0 = 0.25
+     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+     local_runs = NamedTuple[]
 
-#     local_pool = feasible_pool_grid[io, iw]
+     local_pool = feasible_pool_grid[io, iw]
 
-#     for s in local_pool
-#         try
-#             p = make_par(o, w, s)
-#             out_1 = equilibrium_unforced(p, P0)
-#             out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+     for s in local_pool
+         try
+             p = make_par(o, w, s)
+             out_1 = equilibrium_unforced(p, P0)
+             out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
 
-#             rec = (; o, w, s...,
-#                     C1_min = out_1.min[3],
-#                     C2_min = out_1.min[4],
-#                     R1_min = out_1.min[1],
-#                     R2_min = out_1.min[2],
-#                     λ1     = out_1.λ1,
-#                     R1_eq  = out_1.eq[1],
-#                     R2_eq  = out_1.eq[2],
-#                     C1_eq  = out_1.eq[3],
-#                     C2_eq  = out_1.eq[4],
-#                     cv_total = out_2.cv_total,
-#                     cv_R1    = out_2.cv_R1,
-#                     cv_R2    = out_2.cv_R2,
-#                     cv_C1    = out_2.cv_C1,
-#                     cv_C2    = out_2.cv_C2,
-#                     cv_G     = out_2.cv_G)
+             rec = (; o, w, s...,
+                     C1_min = out_1.min[3],
+                     C2_min = out_1.min[4],
+                     R1_min = out_1.min[1],
+                     R2_min = out_1.min[2],
+                     λ1     = out_1.λ1,
+                     R1_eq  = out_1.eq[1],
+                     R2_eq  = out_1.eq[2],
+                     C1_eq  = out_1.eq[3],
+                     C2_eq  = out_1.eq[4],
+                     cv_total = out_2.cv_total,
+                     cv_R1    = out_2.cv_R1,
+                     cv_R2    = out_2.cv_R2,
+                     cv_C1    = out_2.cv_C1,
+                     cv_C2    = out_2.cv_C2,
+                     cv_G     = out_2.cv_G)
 
-#             push!(local_runs, rec)
-#         catch err
-#             @warn "Unforced fail at (o=$o, w=$w): $err"
-#         end
-#     end
+             push!(local_runs, rec)
+         catch err
+             @warn "Unforced fail at (o=$o, w=$w): $err"
+         end
+     end
 
-#     runs_stab_unforced[io, iw] = local_runs
-# end
-# @info "Done UNFORCED robustness grid."
+     runs_stab_unforced[io, iw] = local_runs
+ end
+ @info "Done UNFORCED robustness grid."
 
-# cell = runs_stab_unforced[6,6]
-# cell[2]
+ cell = runs_stab_unforced[1,1]
+ cell[2]
 
+##so, here i now have a matrix of vectors for each combination of o and w that gives coexistence 
+##another alternative rather than the % of times that get lowest cv, is in this setup, since the parameter sets for each comb of o-w are different, can calculate lets say min or mean cv of total harvest, and then plot that on heatmap
+
+##for each o-w combo, select vector that has lowest cv
+min_cv = map(v -> minimum(x -> x.cv_total, v), runs_stab_unforced)
+mean_cv = map(v -> mean(x -> x.cv_total, v), runs_stab_unforced)
+
+λ1_min = map(v -> minimum(x -> x.λ1, v), runs_stab_unforced)
+ heatmap(o_grid, w_grid, mean_cv;
+         xlabel = "o",
+         ylabel = "w",
+         title = "Mean CV of total harvest for random feasible nuisance parameter draws",
+         colorbar_title = "cv total harvest")
+
+ heatmap(o_grid, w_grid, min_cv;
+         xlabel = "o",
+         ylabel = "w",
+         title = "Minimum CV of total harvest for random feasible nuisance parameter draws",
+         colorbar_title = "cv total harvest")
+
+heatmap(o_grid, w_grid, λ1_min;
+         xlabel = "o",
+         ylabel = "w",
+         title = "Minimum eigenvalue of total harvest for random feasible nuisance parameter draws",
+         colorbar_title = "eigenvalue")
 # ## =================================================================================
 # ## Forced robustness grid: reuse same feasible nuisances per (o,w)
 # ## (H is treated as a focal parameter here)
 # ## =================================================================================
-
+H_grid = range(bounds[:H]...; length=1)
 # # Allocate a cell array that stores all runs for each (o,w,H) - for forced model
-# runs_stab_forced = [NamedTuple[] for _ in 1:No, _ in 1:Nw, _ in 1:length(H_grid)]
+ runs_stab_forced = [NamedTuple[] for _ in 1:No, _ in 1:Nw, _ in 1:length(H_grid)]
 
-# @info "Running robustness grid for FORCED model..."
-# @threads for idx in 1:(No * Nw * length(H_grid))
-#     tmp = idx - 1
-#     io = fld(tmp, (Nw * length(H_grid))) + 1
-#     rem1 = tmp % (Nw * length(H_grid))
-#     iw = fld(rem1, length(H_grid)) + 1
-#     iH = (rem1 % length(H_grid)) + 1
+ @info "Running robustness grid for FORCED model..."
+ @threads for idx in 1:(No * Nw * length(H_grid))
+     tmp = idx - 1
+     io = fld(tmp, (Nw * length(H_grid))) + 1
+     rem1 = tmp % (Nw * length(H_grid))
+     iw = fld(rem1, length(H_grid)) + 1
+     iH = (rem1 % length(H_grid)) + 1
 
-#     o = o_grid[io]
-#     w = w_grid[iw]
-#     H = H_grid[iH]
+     o = o_grid[io]
+     w = w_grid[iw]
+     H = H_grid[iH]
 
-#     P0 = 0.25
-#     local_runs = NamedTuple[]
-#     local_pool = feasible_pool_grid[io, iw]  # same feasible nuisances as unforced
+     P0 = 0.25
+     local_runs = NamedTuple[]
+     local_pool = feasible_pool_grid[io, iw]  # same feasible nuisances as unforced
 
-#     for s in local_pool
-#         try
-#             p = make_par(o, w, H, s)
-#             out_1 = equilibrium_forced_2(p, P0; 
-#                                          t_warmup = 300.0, 
-#                                          t_eval   = 350.0,
-#                                          ngrid    = 300,
-#                                          reltol   = 1e-6,
-#                                          abstol   = 1e-6)
+     for s in local_pool
+         try
+             p = make_par_forced(o, w, H, s)
+             out_1 = equilibrium_forced_2(p, P0; 
+                                          t_warmup = 300.0, 
+                                          t_eval   = 350.0,
+                                          ngrid    = 300,
+                                          reltol   = 1e-6,
+                                          abstol   = 1e-6)
 
-#             rec = (; o, w, H, s..., n_id = hash(s),
-#                     C1_min = out_1.min[3],
-#                     C2_min = out_1.min[4],
-#                     R1_min = out_1.min[1],
-#                     R2_min = out_1.min[2],
-#                     cv_total = out_1.cv_total,
-#                     cv_R1    = out_1.cv_R1,
-#                     cv_R2    = out_1.cv_R2,
-#                     cv_C1    = out_1.cv_C1,
-#                     cv_C2    = out_1.cv_C2,
-#                     cv_G     = out_1.cv_G)
+             rec = (; o, w, H, s..., n_id = hash(s),
+                     C1_min = out_1.min[3],
+                     C2_min = out_1.min[4],
+                     R1_min = out_1.min[1],
+                     R2_min = out_1.min[2],
+                     cv_total = out_1.cv_total,
+                     cv_R1    = out_1.cv_R1,
+                     cv_R2    = out_1.cv_R2,
+                     cv_C1    = out_1.cv_C1,
+                     cv_C2    = out_1.cv_C2,
+                     cv_G     = out_1.cv_G)
 
-#             push!(local_runs, rec)
-#         catch err
-#             @warn "Forced fail at (o=$o, w=$w, H=$H): $err"
-#         end
-#     end
+             push!(local_runs, rec)
+         catch err
+             @warn "Forced fail at (o=$o, w=$w, H=$H): $err"
+         end
+     end
 
-#     runs_stab_forced[io, iw, iH] = local_runs
-# end
-# @info "Done FORCED robustness grid."
+     runs_stab_forced[io, iw, iH] = local_runs
+ end
+ @info "Done FORCED robustness grid."
 
-# cell = runs_stab_forced[6,6,1]
-# cell[2]
-# cell[3]
+ cell = runs_stab_forced[6,6,1]
+ cell[2]
+ cell[3]
 
+ ##for each o-w combo, select vector that has lowest cv
+runs_stab_forced_2 = dropdims(runs_stab_forced; dims = 3)
+min_cv = map(v -> minimum(x -> x.cv_total, v), runs_stab_forced_2)
+mean_cv = map(v -> mean(x -> x.cv_total, v), runs_stab_forced_2)
+#median_cv = map(v -> me(x -> x.cv_total, v), runs_stab_forced_2)
+
+
+ heatmap(o_grid, w_grid, mean_cv;
+         xlabel = "o",
+         ylabel = "w",
+         title = "Mean CV of total harvest for random feasible nuisance parameter draws",
+         colorbar_title = "cv total harvest")
+
+ heatmap(o_grid, w_grid, min_cv;
+         xlabel = "o",
+         ylabel = "w",
+         title = "Minimum CV of total harvest for random feasible nuisance parameter draws",
+         colorbar_title = "cv total harvest")
 
 
 # ## =================================================================================
