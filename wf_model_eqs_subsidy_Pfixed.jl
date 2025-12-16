@@ -299,7 +299,7 @@ end
 
 ##Model 
 function model_forced!(du, u, p ,t)
-    @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l, e1, e2 = p
+    @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, H, l, e1, e2 = p
    R1, R2, C1, C2, P = u 
    G = p.G_func(t)
  
@@ -330,7 +330,7 @@ function model_forced!(du, u, p ,t)
 
  ##can adjust model and do forced/unforced just by changing parameters l1 andl2, will simplify code so dont need to do all forced/unforced i think.... just set up equilibirum functions to do both, maybe have if statements 
 function model_unforced!(du, u, p ,t)
-   @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l, e1, e2 = p
+   @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, H = p
     R1, R2, C1, C2, P = u 
      G = p.G_func(t)
  
@@ -360,7 +360,7 @@ function model_unforced!(du, u, p ,t)
 
 ##function to calculate total harvest for P, by summing functional response for P at each time step
 function total_FR_into_P(u, p ,t)
-  @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e,  mC, mP, H, l, e1, e2 = p
+  @unpack r, K,  aR_P, aC_P, aG_P, hR_P, hC_P, hG_P, e, mC, H = p
     R1, R2, C1, C2, P = u 
    G = p.G_func(t)
    ##predator functional responses

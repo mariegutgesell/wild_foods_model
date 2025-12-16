@@ -2,11 +2,12 @@
 ##Date Initiated: October 10, 2025
 ##Contributor(s): Marie K. Gutgesell
 
-#using Pkg
+using Pkg
 #Pkg.add("GlobalSensitivity")
 #Pkg.add("QuasiMonteCarlo")
 #Pkg.add("StatsPlots")
-
+Pkg.add("DataFrames")
+Pkg.add("Parquet")
 #using DifferentialEquations, ForwardDiff, LinearAlgebra
 #using NLsolve
 using GlobalSensitivity
@@ -15,7 +16,8 @@ using QuasiMonteCarlo   # for LHS/Sobol sampling
 using Random
 using StatsPlots
 using Base.Threads
-
+using DataFrames
+using Parquet
 ##source model - choose which based on which you want to investigate
 #project_root = raw"C:\Users\mccan\Documents\Github\Gutgesell"
 include( "wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
@@ -491,6 +493,16 @@ feasible_pool_grid, attempts_grid =
 feasible_pool_grid
 attempts_grid
 
+# ## =================================================================================
+# ## Build library of all parameter sets to test each o-w combination on 
+# ## =================================================================================
+
+param_library = [
+    (; o = o_grid[i], w = w_grid[j], params = p)
+    for i in axes(feasible_pool_grid, 1)
+    for j in axes(feasible_pool_grid, 2)
+    for p in feasible_pool_grid[i, j]
+]
 
 # ## =================================================================================
 # ## Unforced robustness grid: use the feasible_pool_grid for each (o,w) in parallel
@@ -510,15 +522,18 @@ No, Nw = length(o_grid), length(w_grid)
      u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
      local_runs = NamedTuple[]
 
-     local_pool = feasible_pool_grid[io, iw]
+     #local_pool = feasible_pool_grid[io, iw]
 
-     for s in local_pool
+     for s in param_library
          try
-             p = make_par(o, w, s)
+             ν = s.params
+            p = make_par(o, w, ν)
              out_1 = equilibrium_unforced(p, P0)
              out_2 = fr_cv_unforced(p; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
 
-             rec = (; o, w, s...,
+             rec = (; o, w,
+               o_src = s.o, w_src = s.w,
+                ν...,
                      C1_min = out_1.min[3],
                      C2_min = out_1.min[4],
                      R1_min = out_1.min[1],
@@ -545,9 +560,18 @@ No, Nw = length(o_grid), length(w_grid)
  end
  @info "Done UNFORCED robustness grid."
 
+ runs_stab_unforced
  cell = runs_stab_unforced[1,1]
  cell[2]
 
+##flatten results matrix to a DataFrame
+all_runs_unforced = reduce(vcat, vec(runs_stab_unforced))
+all_runs_unforced = [(; run_id = i, r...) for (i, r) in enumerate(all_runs_unforced)]
+all_runs_unforced_df = DataFrame(all_runs_unforced)
+write_parquet("runs_stab_unforced.parquet", all_runs_unforced_df)
+
+
+all_runs_unforced_df
 ##so, here i now have a matrix of vectors for each combination of o and w that gives coexistence 
 ##another alternative rather than the % of times that get lowest cv, is in this setup, since the parameter sets for each comb of o-w are different, can calculate lets say min or mean cv of total harvest, and then plot that on heatmap
 
