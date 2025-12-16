@@ -18,6 +18,7 @@ using StatsPlots
 using Base.Threads
 using DataFrames
 using Parquet
+using Plots
 ##source model - choose which based on which you want to investigate
 #project_root = raw"C:\Users\mccan\Documents\Github\Gutgesell"
 include( "wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
@@ -572,32 +573,95 @@ write_parquet("runs_stab_unforced.parquet", all_runs_unforced_df)
 
 
 all_runs_unforced_df
+
+
+##okay sick, so now, want to calculate proportion of feasible, and then median CV
+tol = 1e-3
+
+all_runs_unforced_df.feasible = (
+    (all_runs_unforced_df.R1_eq .> tol) .&
+    (all_runs_unforced_df.R2_eq .> tol) .&
+    (all_runs_unforced_df.C1_eq .> tol) .&
+    (all_runs_unforced_df.C2_eq .> tol)
+)
+summary_ow = combine(
+    groupby(all_runs_unforced_df, [:o, :w]),
+    :feasible => mean => :prop_feasible,
+    :feasible => sum  => :n_feasible,
+    :cv_total => length => :n_total,
+    [:cv_total, :feasible] =>
+        ((cv, f) -> median(cv[f])) => :median_cv_feasible,
+  [:λ1, :feasible] =>
+        ((λ, f) -> any(f) ? median(λ[f]) : missing) => :median_λ1_feasible
+)
+
+
+##transpose back into a grid for Plotting
+prop_grid = unstack(summary_ow, :w, :o, :prop_feasible)
+median_cv_grid = unstack(summary_ow, :w, :o, :median_cv_feasible)
+eig_grid = unstack(summary_ow, :w, :o, :median_λ1_feasible)
+# y-axis (rows)
+w_vals = median_cv_grid.w
+
+# x-axis (column names, skipping :w)
+o_syms = names(median_cv_grid)[2:end]
+o_vals = parse.(Float64, string.(o_syms))
+
+# z matrix
+Z = Matrix(median_cv_grid[:, 2:end])
+
+heatmap(
+    o_vals,
+    w_vals,
+    Z;
+    xlabel = "o",
+    ylabel = "w",
+    title  = "Median CV (feasible runs)",
+    colorbar_title = "median CV",
+    aspect_ratio = :equal
+)
+
+
+# z matrix
+Z_2= Matrix(prop_grid[:, 2:end])
+
+heatmap(
+    o_vals,
+    w_vals,
+    Z_2;
+    xlabel = "o",
+    ylabel = "w",
+    title  = "Proportion Feasible Runs",
+    colorbar_title = "Proportion",
+    aspect_ratio = :equal
+)
+
+Z_3= Matrix(eig_grid[:, 2:end])
+
+heatmap(
+    o_vals,
+    w_vals,
+    Z_3;
+    xlabel = "o",
+    ylabel = "w",
+    title  = "Median Eigenvalue (Feasible Runs)",
+    colorbar_title = "Median Eigenvalue",
+    aspect_ratio = :equal
+)
+
+##sanity checks
+# should be ≤ 1
+maximum(summary_ow.prop_feasible)
+
+# cells with zero feasible runs
+filter(:n_feasible => ==(0), summary_ow)
+
+# compare raw vs filtered CV
+describe(all_runs_unforced_df.cv_total)
+describe(all_runs_unforced_df.cv_total[all_runs_unforced_df.feasible])
 ##so, here i now have a matrix of vectors for each combination of o and w that gives coexistence 
 ##another alternative rather than the % of times that get lowest cv, is in this setup, since the parameter sets for each comb of o-w are different, can calculate lets say min or mean cv of total harvest, and then plot that on heatmap
 
-##for each o-w combo, select vector that has lowest cv
-min_cv = map(v -> minimum(x -> x.cv_total, v), runs_stab_unforced)
-mean_cv = map(v -> mean(x -> x.cv_total, v), runs_stab_unforced)
-
-
-λ1_min = map(v -> minimum(x -> x.λ1, v), runs_stab_unforced)
- heatmap(o_grid, w_grid, mean_cv;
-         xlabel = "o",
-         ylabel = "w",
-         title = "Mean CV of total harvest for random feasible nuisance parameter draws",
-         colorbar_title = "cv total harvest")
-
- heatmap(o_grid, w_grid, min_cv;
-         xlabel = "o",
-         ylabel = "w",
-         title = "Minimum CV of total harvest for random feasible nuisance parameter draws",
-         colorbar_title = "cv total harvest")
-
-heatmap(o_grid, w_grid, λ1_min;
-         xlabel = "o",
-         ylabel = "w",
-         title = "Minimum eigenvalue of total harvest for random feasible nuisance parameter draws",
-         colorbar_title = "eigenvalue")
 # ## =================================================================================
 # ## Forced robustness grid: reuse same feasible nuisances per (o,w)
 # ## (H is treated as a focal parameter here)
