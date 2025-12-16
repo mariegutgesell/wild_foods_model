@@ -19,6 +19,7 @@ using Base.Threads
 using DataFrames
 using Parquet
 using Plots
+using Statistics
 ##source model - choose which based on which you want to investigate
 #project_root = raw"C:\Users\mccan\Documents\Github\Gutgesell"
 include( "wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
@@ -35,7 +36,7 @@ nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :h
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
-    :H => (0.0, 0.0), ## keeping H at 0 for unforced structure runs
+    :H => (0.0, 0.5), ## keeping H at 0 for unforced structure runs
     :r => (0.2, 3.0),
     :K => (1.0, 3.8),
     :aR_P => (1.0, 2.5),
@@ -64,26 +65,6 @@ logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])
 map_to_range(x, lo, hi; logscaled=false) =
     logscaled ? exp(log(lo) + x*(log(hi) - log(lo))) : (lo + x*(hi - lo))
 
-# ##create function to test if parameters yield biologically feasible equilibrium
-# function is_feasible_paramset(p::ModelPar_active; P0=0.25, tol=0)
-#     try
-#         # Suppress @warn messages (e.g. NaN/Inf in community matrix)
-#         out = with_logger(NullLogger()) do
-#             equilibrium_unforced(p, P0)
-#         end
-#         eq = out.eq
-
-#         # Choose whichever criterion you’ve settled on; here’s the relaxed one:
-#         return all(isfinite, eq) && all(x -> x > tol, eq) ##this does check in two steps -1) are all values in eq finite, two are they greater than tolerance
-
-#         # If you want the strict one instead, use:
-#         # return all(x -> isfinite(x) && x > tol, eq) ##here does both criteria at the same time, slightly faster but maybe harder to see why failed 
-
-#     catch
-#         return false
-#     end
-# end
-
 
 # Draw N samples of nuisance params with LHS (unconstrained)
 function sample_nuisance(N::Int; rng=Random.default_rng())
@@ -107,10 +88,10 @@ end
 ## ===============================
 # Unforced version: H taken from ν.H (which is fixed at 0 in current bounds)
 function make_par(o::Real, w::Real, ν::NamedTuple)
-    ModelPar_active(p0;
-        o = o, w = w, H = ν.H,
-        r = ν.r, K = ν.K,
-        aR_P = ν.aR_P, aC_P = ν.aC_P, aG_P = ν.aG_P, aR_C = ν.aR_C,
+   ModelPar_active(p0;
+      o = o, w = w, H = ν.H,
+       r = ν.r, K = ν.K,
+      aR_P = ν.aR_P, aC_P = ν.aC_P, aG_P = ν.aG_P, aR_C = ν.aR_C,
         hR_P = ν.hR_P, hC_P = ν.hC_P, hG_P = ν.hG_P, hR_C = ν.hR_C,
         e = ν.e, mC = ν.mC, 
         G = ν.G
@@ -540,6 +521,7 @@ No, Nw = length(o_grid), length(w_grid)
                      R1_min = out_1.min[1],
                      R2_min = out_1.min[2],
                      λ1     = out_1.λ1,
+                     λ1_imag     = out_1.λ1_imag,
                      R1_eq  = out_1.eq[1],
                      R2_eq  = out_1.eq[2],
                      C1_eq  = out_1.eq[3],
@@ -573,6 +555,19 @@ write_parquet("runs_stab_unforced.parquet", all_runs_unforced_df)
 
 
 all_runs_unforced_df
+
+λ = all_runs_unforced_df[:, :λ1]
+λ = filter(isfinite, λ)
+
+
+bw = 0.05
+edges = minimum(λ):bw:10
+
+histogram(λ;
+    bins = edges,
+    xlabel = "λ₁ (max real eigenvalue)",
+    ylabel = "Count"
+)
 
 
 ##okay sick, so now, want to calculate proportion of feasible, and then median CV
@@ -666,10 +661,13 @@ describe(all_runs_unforced_df.cv_total[all_runs_unforced_df.feasible])
 # ## Forced robustness grid: reuse same feasible nuisances per (o,w)
 # ## (H is treated as a focal parameter here)
 # ## =================================================================================
-H_grid = range(bounds[:H]...; length=1)
+
+####With H in model 
+
+H_grid = range(bounds[:H]...; length=2)
 # # Allocate a cell array that stores all runs for each (o,w,H) - for forced model
  runs_stab_forced = [NamedTuple[] for _ in 1:No, _ in 1:Nw, _ in 1:length(H_grid)]
-
+ 
  @info "Running robustness grid for FORCED model..."
  @threads for idx in 1:(No * Nw * length(H_grid))
      tmp = idx - 1
@@ -684,11 +682,12 @@ H_grid = range(bounds[:H]...; length=1)
 
      P0 = 0.25
      local_runs = NamedTuple[]
-     local_pool = feasible_pool_grid[io, iw]  # same feasible nuisances as unforced
+     #local_pool = feasible_pool_grid[io, iw]  # same feasible nuisances as unforced
 
-     for s in local_pool
+     for s in param_library
          try
-             p = make_par_forced(o, w, H, s)
+            ν = s.params
+             p = make_par_forced(o, w, H, ν)
              out_1 = equilibrium_forced_2(p, P0; 
                                           t_warmup = 300.0, 
                                           t_eval   = 350.0,
@@ -696,7 +695,7 @@ H_grid = range(bounds[:H]...; length=1)
                                           reltol   = 1e-6,
                                           abstol   = 1e-6)
 
-             rec = (; o, w, H, s..., n_id = hash(s),
+             rec = (; o, w, H, s...,
                      C1_min = out_1.min[3],
                      C2_min = out_1.min[4],
                      R1_min = out_1.min[1],
@@ -721,6 +720,222 @@ H_grid = range(bounds[:H]...; length=1)
  cell = runs_stab_forced[6,6,1]
  cell[2]
  cell[3]
+
+
+ ##flatten results matrix to a DataFrame
+all_runs_forced = reduce(vcat, vec(runs_stab_forced))
+all_runs_forced = [(; run_id = i, r...) for (i, r) in enumerate(all_runs_forced)]
+all_runs_forced_df = DataFrame(all_runs_forced)
+names(all_runs_forced_df)
+
+df_flat = hcat(
+    select(all_runs_forced_df, Not(:params)),
+    DataFrame(all_runs_forced_df.params);
+    makeunique = true
+)
+rename!(df_flat, Dict(:H => :H_forcing, :H_1 => :H_nuisance))
+
+names(df_flat)
+write_parquet("runs_stab_forced.parquet", df_flat)
+
+all_runs_forced_df
+df_flat
+
+filter(n -> occursin("H", String(n)), names(df_flat))
+# If you see H and H_1 (or similar), check whether they match:
+all(df_flat.H .== df_flat.H_1)
+describe(df_flat.H); describe(df_flat.H_1)
+
+# And confirm your H grid is actually represented:
+combine(groupby(df_flat, :H), nrow)
+combine(groupby(df_flat, :H_1), nrow)
+
+
+##okay sick, so now, want to calculate proportion of feasible, and then median CV
+tol = 1e-3
+
+df_flat.feasible = (
+    (df_flat.R1_min .> tol) .&
+    (df_flat.R2_min .> tol) .&
+    (df_flat.C1_min .> tol) .&
+    (df_flat.C2_min .> tol)
+)
+summary_ow = combine(
+    groupby(df_flat, [:o, :w, :H_forcing]),
+    :feasible => mean => :prop_feasible,
+    :feasible => sum  => :n_feasible,
+    :cv_total => length => :n_total,
+    [:cv_total, :feasible] =>
+        ((cv, f) -> median(cv[f])) => :median_cv_feasible,
+)
+
+
+##transpose back into a grid for Plotting
+summary_ow_H0 = filter(:H_forcing => ==(0), summary_ow)
+summary = sort(summary_ow_H0, [:w, :o])   # or [:o,:w] depending on your convention
+
+prop_grid = unstack(summary, :w, :o, :prop_feasible)
+median_cv_grid = unstack(summary, :w, :o, :median_cv_feasible)
+
+spread_ow = combine(groupby(df_flat, [:o, :w, :H_forcing]),
+     [:cv_total, :feasible] => ((cv,f)-> any(f) ? (quantile(cv[f],0.9)-quantile(cv[f],0.1)) : missing) => :q90_q10_cv_feasible
+)
+spread_H0 = filter(:H_forcing => ==(0), spread_ow)
+spread_grid = unstack(spread_H0, :w, :o, :q90_q10_cv_feasible)
+
+# y-axis (rows)
+w_vals = median_cv_grid.w
+
+# x-axis (column names, skipping :w)
+o_syms = names(median_cv_grid)[2:end]
+o_vals = parse.(Float64, string.(o_syms))
+
+# z matrix
+Z = Matrix(median_cv_grid[:, 2:end])
+
+heatmap(
+    o_vals,
+    w_vals,
+    Z;
+    xlabel = "o",
+    ylabel = "w",
+    title  = "Median CV (feasible runs)",
+    colorbar_title = "median CV",
+    aspect_ratio = :equal
+)
+
+
+# z matrix
+Z_2= Matrix(prop_grid[:, 2:end])
+
+heatmap(
+    o_vals,
+    w_vals,
+    Z_2;
+    xlabel = "o",
+    ylabel = "w",
+    title  = "Proportion Feasible Runs",
+    colorbar_title = "Proportion",
+    aspect_ratio = :equal
+)
+
+# z matrix
+Z_3 = Matrix(spread_grid[:, 2:end])
+
+heatmap(
+    o_vals,
+    w_vals,
+    Z_3;
+    xlabel = "o",
+    ylabel = "w",
+    title  = "90 quantile",
+    colorbar_title = "90 quantile",
+    aspect_ratio = :equal
+)
+
+
+##So when i run the forced model this way, the heat maps look random - why is this? 
+
+
+
+###testing to see if maybe issue is how long evaluation window is 
+# -----------------------
+# User settings
+# -----------------------
+rng = MersenneTwister(1)
+
+H_forcing = 0.0         # pick one forced level to test
+P0 = 0.25
+u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+
+t_warmup = 300.0
+t_eval_short = 350.0
+t_eval_long  = 2000.0
+
+ngrid_short = 300
+ngrid_long  = 2000
+
+n_cells = 5              # test 3–5 cells
+n_nuis  = 5              # test 5 nuisance sets
+
+# -----------------------
+# Choose cells + nuisance sets
+# -----------------------
+cells = [(rand(rng, eachindex(o_grid)), rand(rng, eachindex(w_grid))) for _ in 1:n_cells]
+nuis_idx = rand(rng, 1:length(param_library), n_nuis)
+
+# -----------------------
+# Run comparison
+# -----------------------
+rows = NamedTuple[]
+
+for (io, iw) in cells
+    o = o_grid[io]
+    w = w_grid[iw]
+
+    for sid in nuis_idx
+        s = param_library[sid]
+        ν = s.params
+
+        # Build full forced parameter struct
+        p = make_par_forced(o, w, H_forcing, ν)
+
+        # ---- short window ----
+        cvS = try
+            outS = fr_cv_forced(p; u0=u0, t_warmup=t_warmup, t_eval=t_eval_short, ngrid=ngrid_short)
+            outS.cv_total
+        catch err
+            missing
+        end
+
+        # ---- long window ----
+        cvL = try
+            outL = fr_cv_forced(p; u0=u0, t_warmup=t_warmup, t_eval=t_eval_long, ngrid=ngrid_long)
+            outL.cv_total
+        catch err
+            missing
+        end
+
+        push!(rows, (; io, iw, o, w, H_forcing,
+                      sid,
+                      cv_short=cvS,
+                      cv_long=cvL,
+                      cv_ratio = (ismissing(cvS) || ismissing(cvL) || cvL == 0) ? missing : cvS / cvL,
+                      cv_diff  = (ismissing(cvS) || ismissing(cvL)) ? missing : cvS - cvL))
+    end
+end
+
+diag_df = DataFrame(rows)
+
+# Inspect
+diag_df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  ##for each o-w combo, select vector that has lowest cv
 runs_stab_forced_2 = dropdims(runs_stab_forced; dims = 3)

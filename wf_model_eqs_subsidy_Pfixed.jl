@@ -846,11 +846,18 @@ t_recover = 250.0 ##time when decline in resources ends
 ##set Parameters
 #p = ModelPar_active(o = 0.1, w = 0.5, H = 0.0, K = 3.05)
 p = ModelPar_active(o = 0.0, w = 0.0, H = 0.0, r = 1.2999999999999996, K = 1.9, aR_C = 1.8013606526895989, aR_P = 1.1777706183189485, aC_P = 1.7486164433891764, aG_P = 1.6654077546996051, hR_P = 1.7239456424939552, hR_C = 0.47568284600108846, hC_P = 1.0250642119658746, hG_P = 1.395392617078673, e = 0.9249999999999999, mC = 0.6462558154613841, G = 3.714285714285714)
+
+##plotting from param library
+s = param_library[1]
+s = param_library[1]
+ν = s.params
+
+p = ModelPar_active(; o = s.o, w = s.w, ν...)
+
 ##Define the ODE problem
-prob_1 = ODEProblem(rhs_unforced, u0, tspan, p)
+prob_1 = ODEProblem(rhs_forced, u0, tspan, p)
 sol_1 = solve(prob_1)
 
-##also this ODE solver is working, why in function am i then getting NAs/Infs in matrix? 
 
 ##plot timeseries
 plot(sol_1, xlabel="Time", ylabel="Population", title="ODE Solution - Active Omnivory")
