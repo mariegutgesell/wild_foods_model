@@ -22,7 +22,7 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant
 ##1) Sensitivity analysis just for structure -- so keeping H at 0 (constant)
 # --- Bounds: focal vs nuisance ---
 focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
-nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
+nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
 # Ranges (examples—replace with yours)
 bounds = Dict(
@@ -81,6 +81,9 @@ function is_feasible_paramset(p::ModelPar_active; P0=0.25, tol=1e-3)
     end
 end
 
+
+
+
 # Draw N samples of nuisance params with LHS
 function sample_nuisance(N::Int; rng=Random.default_rng())
     d = length(nuisance_syms)
@@ -99,17 +102,23 @@ function sample_nuisance(N::Int; rng=Random.default_rng())
 end
 
 ##trying new constrained sampling - constraining 
-function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries = 10000)
+##set seed
+Random.seed!(42)
+##setting a series of anchors 
+anchors = [(0.5,0.5), (0.0,0.0), (0.0,1.0), (1.0,0.0), (1.0,1.0)]
+
+function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries=10_000)
     d = length(nuisance_syms)
     feasible = NamedTuple[]
     tries = 0
 
     while length(feasible) < N && tries < max_tries
-        # Draw one batch of LHS points (batch_size can be tuned)
         batch_size = max(N, 50)
         X = QuasiMonteCarlo.sample(d, batch_size, LatinHypercubeSample())
 
         for i in 1:batch_size
+            tries += 1
+
             pairs = ntuple(j -> begin
                 s = nuisance_syms[j]
                 lo, hi = bounds[s]
@@ -118,26 +127,37 @@ function sample_nuisance_constrained(N::Int; rng=Random.default_rng(), max_tries
             end, d)
             ν = NamedTuple(pairs)
 
-            # Build model params with default focal params (e.g., baseline o,w,H)
-            p = ModelPar_active(p0; o=0.5, w=0.5, H=0.5,
-                r=ν.r, K=ν.K, aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P,
-                aR_C=ν.aR_C, hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P,
-                hR_C=ν.hR_C, e=ν.e, mC=ν.mC, G=ν.G)
+            ok = false
+            for (oa, wa) in anchors
+                p = ModelPar_active(p0; o=oa, w=wa, H=0.0,
+                    r=ν.r, K=ν.K,
+                    aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P, aR_C=ν.aR_C,
+                    hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P, hR_C=ν.hR_C,
+                    e=ν.e, mC=ν.mC, G=ν.G)
 
-            # Check feasibility
-            if is_feasible_paramset(p)
-                push!(feasible, ν)
-                if length(feasible) ≥ N
+                if is_feasible_paramset(p)
+                    ok = true
                     break
                 end
             end
-            tries += 1
+
+            if ok
+                push!(feasible, ν)
+                if length(feasible) >= N
+                    break
+                end
+            end
+
+            if tries >= max_tries
+                break
+            end
         end
     end
 
     if length(feasible) < N
         @warn "Only found $(length(feasible)) feasible samples after $tries draws"
     end
+
     return feasible[1:min(end, N)]
 end
 
@@ -173,7 +193,7 @@ nuisance_pool = sample_nuisance_constrained(Nrep; rng)
 
 ##this approach copies the parameters from pO and only overrides the ones indicated after the ; (so keeps the function parameters)
 function make_par(o, w, ν::NamedTuple)
-    return ModelPar_active(p0; o=o, w=w, H=ν.H,
+    return ModelPar_active(p0; o=o, w=w, H=0.0,
         r=ν.r, K=ν.K,
         aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P, aR_C=ν.aR_C,  # <- check names
         hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P, hR_C=ν.hR_C,  # <- check names
@@ -257,7 +277,10 @@ end
          title = "Median CV of total harvest for random feasible nuisance parameter draws",
          colorbar_title = "cv total harvest")
 
-
+# NEXT:
+# 1) Increase Nrep to ~50
+# 2) Parallelize over nuisance draws
+# 3) Add forced-model feasibility + CV
 # Allocate a cell array that stores all runs for each (o,w,H) - for forced model
 runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
 

@@ -555,6 +555,7 @@ No, Nw = length(o_grid), length(w_grid)
 min_cv = map(v -> minimum(x -> x.cv_total, v), runs_stab_unforced)
 mean_cv = map(v -> mean(x -> x.cv_total, v), runs_stab_unforced)
 
+
 λ1_min = map(v -> minimum(x -> x.λ1, v), runs_stab_unforced)
  heatmap(o_grid, w_grid, mean_cv;
          xlabel = "o",
