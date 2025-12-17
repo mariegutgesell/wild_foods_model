@@ -24,33 +24,57 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant
 focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
 nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
-# Ranges (examples—replace with yours)
+# Ranges (bounds -- based on univariate stability analysis)
+#bounds = Dict(
+#    :o => (0.0, 1.0),
+#    :w => (0.0, 1.0),
+#    :H => (0.0, 0.0), ##is this a way to make sure it is always 0 ? 
+#    :r => (0.2, 3.0),
+#    :K => (1.0, 3.8),
+#    :aR_P => (1.0, 2.5),
+#    :aR_C => (1.0, 3.0),
+#    :aC_P => (0.8, 1.8),
+#    :aG_P => (1.0, 3.0),
+#    :hR_C => (0.4, 0.8),
+#    :hR_P => (0.5, 2.0),
+#    :hC_P => (1.0, 2.0),
+#    :hG_P => (0.8, 2.0),
+#    :e   => (0.7, 1.0),
+#    :mC  => (0.6, 1.2),
+   # :mP  => (0.01, 1.5),
+#    :G => (1.0, 5.0),
+  #  :G_base => (0.0, 10.0),
+ #   :l  => (0.0, 1.0),
+ #   :pf => (0.5, 10.0),
+ #   :D => (0.0, 1.0)
+#)
+
+# Ranges (bounds -- based on 20% around values used in MS)
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
     :H => (0.0, 0.0), ##is this a way to make sure it is always 0 ? 
-    :r => (0.2, 3.0),
-    :K => (1.0, 3.8),
-    :aR_P => (1.0, 2.5),
-    :aR_C => (1.0, 3.0),
-    :aC_P => (0.8, 1.8),
-    :aG_P => (1.0, 3.0),
-    :hR_C => (0.4, 0.8),
-    :hR_P => (0.5, 2.0),
-    :hC_P => (1.0, 2.0),
-    :hG_P => (0.8, 2.0),
-    :e   => (0.7, 1.0),
-    :mC  => (0.6, 1.2),
+    :r => (0.8, 1.2), ##1.0
+    :K => (2.44, 3.66), ##3.05
+    :aR_P => (3.2, 4.8), ##4.0
+    :aR_C => (2.0, 3.0), ##2.5
+    :aC_P => (2.72, 4.08), #3.4
+    :aG_P => (2.72, 4.08), #3.4
+    :hR_C => (0.32, 0.48), #0.4
+    :hR_P => (1.0, 1.5), #1.25
+    :hC_P => (1.0, 1.5), #1.25#
+    :hG_P => (1.0, 1.5), #1.25
+    :e   => (0.64, 0.96), #0.8
+    :mC  => (0.8, 1.2), #1.0
    # :mP  => (0.01, 1.5),
-    :G => (1.0, 5.0),
+    :G => (1.6, 2.4), #2.0
   #  :G_base => (0.0, 10.0),
  #   :l  => (0.0, 1.0),
  #   :pf => (0.5, 10.0),
  #   :D => (0.0, 1.0)
 )
-
 # Optional: which are log-scaled? - good for ones that span orders of magnitude
-logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])  # e.g., Set([:aR_P, :aC_P, :aG_P])
+#logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])  # e.g., Set([:aR_P, :aC_P, :aG_P])
 
 ##need to figure out how to keep more biologically realistic parameter combinations 
 

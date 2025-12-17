@@ -243,7 +243,7 @@ end
 
     ##Model parameters, for now just keeping these parameters the same for each patch, different per trophic level - based on values in Fig 3, McCann et al., 2005
     r = 1.0
-    K = 3.25
+    K = 3.05
     aR_C = 2.5  ##attack rate  of consumer on R
     aR_P = 4.0 ##attack rate of P on R 
     aC_P = 3.4  ##attack rate of P on C 

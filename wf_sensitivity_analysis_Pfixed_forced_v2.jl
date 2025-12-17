@@ -57,6 +57,8 @@ bounds = Dict(
  #   :D => (0.0, 1.0)
 )
 
+##can also try just a 10-20% variance around the values we have in our model 
+##could also try drawing from normal distribution rather than from a uniform 
 # Optional: which are log-scaled? - good for ones that span orders of magnitude
 logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])
 
