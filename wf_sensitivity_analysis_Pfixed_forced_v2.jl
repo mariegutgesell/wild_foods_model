@@ -33,35 +33,35 @@ focal_syms    = (:o, :w)   # for this first one only focusing on o and w
 nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
 # Ranges (based on univariate stability analysis)
-bounds = Dict(
-    :o => (0.0, 1.0),
-    :w => (0.0, 1.0),
-    :H => (0.0, 0.5), ## keeping H at 0 for unforced structure runs
-    :r => (0.2, 3.0),
-    :K => (1.0, 3.8),
-    :aR_P => (1.0, 2.5),
-    :aR_C => (1.0, 3.0),
-    :aC_P => (0.8, 1.8),
-    :aG_P => (1.0, 3.0),
-    :hR_C => (0.4, 0.8),
-    :hR_P => (0.5, 2.0),
-    :hC_P => (1.0, 2.0),
-    :hG_P => (0.8, 2.0),
-    :e   => (0.7, 1.0),
-    :mC  => (0.6, 1.2),
+#bounds = Dict(
+#    :o => (0.0, 1.0),
+#    :w => (0.0, 1.0),
+#    :H => (0.0, 0.5), ## keeping H at 0 for unforced structure runs
+#    :r => (0.2, 3.0),
+#    :K => (1.0, 3.8),
+#    :aR_P => (1.0, 2.5),
+#    :aR_C => (1.0, 3.0),
+#    :aC_P => (0.8, 1.8),
+#    :aG_P => (1.0, 3.0),
+#    :hR_C => (0.4, 0.8),
+#    :hR_P => (0.5, 2.0),
+#    :hC_P => (1.0, 2.0),
+#    :hG_P => (0.8, 2.0),
+#    :e   => (0.7, 1.0),
+#    :mC  => (0.6, 1.2),
    # :mP  => (0.01, 1.5),
-    :G => (1.0, 5.0),
+#    :G => (1.0, 5.0),
   #  :G_base => (0.0, 10.0),
  #   :l  => (0.0, 1.0),
  #   :pf => (0.5, 10.0),
  #   :D => (0.0, 1.0)
-)
+#)
 
 # Ranges (bounds -- based on 20% around values used in MS)
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
-    :H => (0.0, 1.0), ##is this a way to make sure it is always 0 ? 
+    :H => (0.0, 0.5), 
     :r => (0.8, 1.2), ##1.0
     :K => (2.44, 3.66), ##3.05
     :aR_P => (3.2, 4.8), ##4.0
@@ -770,12 +770,12 @@ df_flat
 
 filter(n -> occursin("H", String(n)), names(df_flat))
 # If you see H and H_1 (or similar), check whether they match:
-all(df_flat.H .== df_flat.H_1)
-describe(df_flat.H); describe(df_flat.H_1)
+all(df_flat.H_forcing .== df_flat.H_nuisance)
+describe(df_flat.H_forcing); describe(df_flat.H_nuisance)
 
 # And confirm your H grid is actually represented:
-combine(groupby(df_flat, :H), nrow)
-combine(groupby(df_flat, :H_1), nrow)
+combine(groupby(df_flat, :H_forcing), nrow)
+combine(groupby(df_flat, :H_nuisance), nrow)
 
 
 ##okay sick, so now, want to calculate proportion of feasible, and then median CV

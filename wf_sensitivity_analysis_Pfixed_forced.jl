@@ -314,10 +314,7 @@ cv_median_H05 = cv_median[:, :, 2]
          title = "Median CV of total harvest for random nuisance parameter draws and H = 0.5",
          colorbar_title = "cv total harvest")
 
-# NEXT:
-# 1) Increase Nrep to ~50
-# 2) Parallelize over nuisance draws
-# 3) Add forced-model feasibility + CV
+
 # Allocate a cell array that stores all runs for each (o,w,H) - for forced model
 runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
 
@@ -408,6 +405,16 @@ cv_median_H05 = cv_median[:, :, 2]
          ylabel = "w",
          title = "Median CV of total harvest for \nrandom nuisance parameter draws and H = 0.5",
          colorbar_title = "cv total harvest")
+
+
+# NEXT:
+# 1) Increase Nrep to ~50
+# 2) Save parameter set 
+# 2) Parallelize over nuisance draws - get CV/prop feasibility for unforced and forced
+# 3) Plot heat map when H = 0
+# 4) Use saved parameter set and run perturbation experiment and save boxplots
+
+
 
 
 
