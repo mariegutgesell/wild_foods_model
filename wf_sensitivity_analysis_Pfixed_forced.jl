@@ -21,7 +21,7 @@ include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant
 ##not sure if need to redefine model_par, i think may be okay to call from my wf_model code 
 ##1) Sensitivity analysis just for structure -- so keeping H at 0 (constant)
 # --- Bounds: focal vs nuisance ---
-focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
+focal_syms    = (:o, :w, :H)   # for this first one only focusing on o and w 
 nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
 # Ranges (bounds -- based on univariate stability analysis)
@@ -53,7 +53,7 @@ nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P,
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
-    :H => (0.0, 0.0), ##is this a way to make sure it is always 0 ? 
+    :H => (0.0, 1.0), ##is this a way to make sure it is always 0 ? 
     :r => (0.8, 1.2), ##1.0
     :K => (2.44, 3.66), ##3.05
     :aR_P => (3.2, 4.8), ##4.0
@@ -76,16 +76,6 @@ bounds = Dict(
 # Optional: which are log-scaled? - good for ones that span orders of magnitude
 #logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])  # e.g., Set([:aR_P, :aC_P, :aG_P])
 
-##need to figure out how to keep more biologically realistic parameter combinations 
-
-
-
-
-##So, want to randomly select from these ranges when running my model
-##Then, evaluate stability - and somehow filter out ones that are biologically unrealistic/give wild eigenvalue or whatever
-##then think, how do i focus on my own parameters im interested in? and outcome? 
-
-
 ##Helper functions - 
 # Map unit cube sample x∈[0,1] to parameter in [lo,hi] (linear or log)
 map_to_range(x, lo, hi; logscaled=false) =
@@ -107,7 +97,6 @@ end
 
 
 
-
 # Draw N samples of nuisance params with LHS
 function sample_nuisance(N::Int; rng=Random.default_rng())
     d = length(nuisance_syms)
@@ -117,7 +106,8 @@ function sample_nuisance(N::Int; rng=Random.default_rng())
         pairs = ntuple(j -> begin
             s = nuisance_syms[j]
             lo, hi = bounds[s]
-            val = map_to_range(X[i,j], lo, hi; logscaled = (s in logscale))
+         #   val = map_to_range(X[i,j], lo, hi; logscaled = (s in logscale)) 
+            val = map_to_range(X[i,j], lo, hi) ##trying out without logscaling 
             (s => val)
         end, d)
         samples[i] = NamedTuple(pairs)
@@ -194,14 +184,14 @@ end
 # Grids for the 3 focal parameters
 o_grid = range(bounds[:o]...; length=11)
 w_grid = range(bounds[:w]...; length=11)
-#H_grid = range(bounds[:H]...; length=3)
+H_grid = range(bounds[:H]...; length=3)
 
 Nrep = 3  # random nuisance samples per grid point (tune)
 
 # Pre-sample nuisance once to reuse (or sample per cell if you prefer)
 rng = MersenneTwister(42)
 p0 = ModelPar_active()
-nuisance_pool = sample_nuisance_constrained(Nrep; rng)
+nuisance_pool = sample_nuisance(Nrep; rng)
 
 ##need to add conditions so that sampled parameter combinations satisfy inequalities that allow for persistence in an unforced model 
 
@@ -216,8 +206,8 @@ nuisance_pool = sample_nuisance_constrained(Nrep; rng)
 #const p0 = ModelPar_active()
 
 ##this approach copies the parameters from pO and only overrides the ones indicated after the ; (so keeps the function parameters)
-function make_par(o, w, ν::NamedTuple)
-    return ModelPar_active(p0; o=o, w=w, H=0.0,
+function make_par(o, w, H, ν::NamedTuple)
+    return ModelPar_active(p0; o=o, w=w, H=H,
         r=ν.r, K=ν.K,
         aR_P=ν.aR_P, aC_P=ν.aC_P, aG_P=ν.aG_P, aR_C=ν.aR_C,  # <- check names
         hR_P=ν.hR_P, hC_P=ν.hC_P, hG_P=ν.hG_P, hR_C=ν.hR_C,  # <- check names
@@ -229,14 +219,14 @@ end
 ##trying version of function tat only calculates cv if feasible and keeps track if not feasible
 # Allocate a cell array that stores all runs for each (o,w,H)-- for unforced model 
 
-runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
+runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
 @info "Running robustness grid..."
-for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
+for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
     P0 = 0.25
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 
     for s in nuisance_pool
-        p = make_par(o, w, s)
+        p = make_par(o, w, H, s)
 
         feasible = false
         out_eq = nothing
@@ -256,7 +246,7 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
         end
 
         rec = if feasible
-            (; o, w, s...,
+            (; o, w, H, s...,
                feasible = true,
                λ1 = out_eq.λ1,
                R1_eq = out_eq.eq[1], R2_eq = out_eq.eq[2],
@@ -267,7 +257,7 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
                cv_R1 = out_cv.cv_R1, cv_R2 = out_cv.cv_R2,
                cv_C1 = out_cv.cv_C1, cv_C2 = out_cv.cv_C2, cv_G = out_cv.cv_G)
         else
-            (; o, w, s...,
+            (; o, w, H, s...,
                feasible = false,
                λ1 = missing,
                R1_eq = missing, R2_eq = missing,
@@ -279,26 +269,49 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
                cv_C1 = missing, cv_C2 = missing, cv_G = missing)
         end
 
-        push!(runs_stab_unforced[io, iw], rec)
+        push!(runs_stab_unforced[io, iw, iH], rec)
     end
 end
 @info "Done."
 
-cell = runs_stab_unforced[6,6]
+cell = runs_stab_unforced[6,6,1]
 
 feasibility_prop = map(runs_stab_unforced) do cell
     mean(getproperty.(cell, :feasible))
 end
+feasibility_H0 = feasibility_prop[:, :, 1]
+feasibility_H05 = feasibility_prop[:, :, 2]
+
+ heatmap(o_grid, w_grid, feasibility_H0';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Feasibility of random nuisance parameter draws and H = 0",
+         colorbar_title = "Proportion feasibility")
+
+ heatmap(o_grid, w_grid, feasibility_H05';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Feasibility of random nuisance parameter draws and H = 0.5",
+         colorbar_title = "Proportion feasibility")
 
 cv_median = map(runs_stab_unforced) do cell
     cvs = [r.cv_total for r in cell if r.feasible]
     isempty(cvs) ? missing : median(cvs)
 end
 
- heatmap(o_grid, w_grid, cv_median;
+cv_median_H0 = cv_median[:, :, 1]
+cv_median_H05 = cv_median[:, :, 2]
+
+ heatmap(o_grid, w_grid, cv_median_H0';
          xlabel = "o",
          ylabel = "w",
-         title = "Median CV of total harvest for random feasible nuisance parameter draws",
+         title = "Median CV of total harvest for random nuisance parameter draws and H = 0",
+         colorbar_title = "cv total harvest")
+
+ heatmap(o_grid, w_grid, cv_median_H05';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Median CV of total harvest for random nuisance parameter draws and H = 0.5",
          colorbar_title = "cv total harvest")
 
 # NEXT:
@@ -311,65 +324,36 @@ runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid
 @info "Running robustness grid..."
 for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
     P0 = 0.25
-    stability_df = NamedTuple[]
-    for s in nuisance_pool
-        p = make_par(o, w, H, s)
-        try
-            out_1 = equilibrium_forced_2(p, P0; t_warmup = 300.0, t_eval = 350.0, ngrid = 300, reltol = 1e-6, abstol = 1e-6)  # e.g. returns (cv=..., λ1=..., ...)
-            # Store the full parameter set + outputs in one record
-            rec = (; o, w, H, s..., n_id = hash(s), C1_min = out_1.min[3], C2_min = out_1.min[4],R1_min = out_1.min[1],R2_min = out_1.min[2],
-             cv_total = out_1.cv_total, cv_R1 = out_1.cv_R1, cv_R2 = out_1.cv_R2, cv_C1 = out_1.cv_C1,cv_C2 = out_1.cv_C2,cv_G = out_1.cv_G)
-            push!(stability_df, rec)
-            push!(runs_stab_forced[io,iw,iH], rec)
-        catch err
-            @warn "Fail at (o=$o, w=$w, H=$H): $err"
-        end
-    end
-end
-@info "Done."
-
-cell = runs_stab_forced[6,6,1]
-cell[2]
-cell[3]
-
-
-##trying version of function tat only calculates cv if feasible and keeps track if not feasible
-runs_stab_forced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid)]
-@info "Running robustness grid..."
-for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
-    P0 = 0.25
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 
     for s in nuisance_pool
-        p = make_par(o, w, s)
+        p = make_par(o, w, H, s)
 
         feasible = false
-        out_eq = nothing
         out_cv = nothing
 
         try
-            out_eq = equilibrium_forced_2(p, P0; t_warmup = 300.0, t_eval = 350.0, ngrid = 300, reltol = 1e-6, abstol = 1e-6) 
-            feasible = all(x -> isfinite(x) && x > 1e-3, out_eq.eq)
-
+            out_cv = equilibrium_forced_2(p, P0)
+            feasible = all(x -> isfinite(x) && x > 1e-3, out_cv.min)
+            # feasible = all(x -> isfinite(x)) ##trying this out just to see what happens 
+            if feasible
+                feasible = true
+            end
         catch
             feasible = false
         end
 
         rec = if feasible
-            (; o, w, s...,
+            (; o, w, H, s...,
                feasible = true,
-               R1_eq = out_eq.eq[1], R2_eq = out_eq.eq[2],
-               C1_eq = out_eq.eq[3], C2_eq = out_eq.eq[4],
-               R1_min = out_eq.min[1], R2_min = out_eq.min[2],
-               C1_min = out_eq.min[3], C2_min = out_eq.min[4],
+               R1_min = out_cv.min[1], R2_min = out_cv.min[2],
+               C1_min = out_cv.min[3], C2_min = out_cv.min[4],
                cv_total = out_cv.cv_total,
                cv_R1 = out_cv.cv_R1, cv_R2 = out_cv.cv_R2,
                cv_C1 = out_cv.cv_C1, cv_C2 = out_cv.cv_C2, cv_G = out_cv.cv_G)
         else
-            (; o, w, s...,
+            (; o, w, H, s...,
                feasible = false,
-               R1_eq = missing, R2_eq = missing,
-               C1_eq = missing, C2_eq = missing,
                R1_min = missing, R2_min = missing,
                C1_min = missing, C2_min = missing,
                cv_total = missing,
@@ -377,15 +361,53 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid)
                cv_C1 = missing, cv_C2 = missing, cv_G = missing)
         end
 
-        push!(runs_stab_forced[io, iw], rec)
+        push!(runs_stab_forced[io, iw, iH], rec)
     end
 end
+
 @info "Done."
 
-cell = runs_stab_unforced[6,6]
+cell = runs_stab_forced[6,6,1]
+cell[2]
+cell[3]
 
+feasibility_prop = map(runs_stab_forced) do cell
+    mean(getproperty.(cell, :feasible))
+end
+feasibility_H0 = feasibility_prop[:, :, 1]
+feasibility_H05 = feasibility_prop[:, :, 2]
 
+ heatmap(o_grid, w_grid, feasibility_H0';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Feasibility of random nuisance parameter draws and H = 0",
+         colorbar_title = "Proportion feasibility")
 
+ heatmap(o_grid, w_grid, feasibility_H05';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Feasibility of random nuisance parameter draws and H = 0.5",
+         colorbar_title = "Proportion feasibility")
+
+cv_median = map(runs_stab_forced) do cell
+    cvs = [r.cv_total for r in cell if r.feasible]
+    isempty(cvs) ? missing : median(cvs)
+end
+
+cv_median_H0 = cv_median[:, :, 1]
+cv_median_H05 = cv_median[:, :, 2]
+
+ heatmap(o_grid, w_grid, cv_median_H0';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Median CV of total harvest for random nuisance parameter draws and H = 0",
+         colorbar_title = "cv total harvest")
+
+ heatmap(o_grid, w_grid, cv_median_H05';
+         xlabel = "o",
+         ylabel = "w",
+         title = "Median CV of total harvest for \nrandom nuisance parameter draws and H = 0.5",
+         colorbar_title = "cv total harvest")
 
 
 

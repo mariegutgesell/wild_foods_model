@@ -2,12 +2,12 @@
 ##Date Initiated: October 10, 2025
 ##Contributor(s): Marie K. Gutgesell
 
-using Pkg
+#using Pkg
 #Pkg.add("GlobalSensitivity")
 #Pkg.add("QuasiMonteCarlo")
 #Pkg.add("StatsPlots")
-Pkg.add("DataFrames")
-Pkg.add("Parquet")
+#Pkg.add("DataFrames")
+#Pkg.add("Parquet")
 #using DifferentialEquations, ForwardDiff, LinearAlgebra
 #using NLsolve
 using GlobalSensitivity
@@ -32,7 +32,7 @@ const p0 = ModelPar_active()
 focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
 nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
 
-# Ranges
+# Ranges (based on univariate stability analysis)
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
@@ -57,10 +57,34 @@ bounds = Dict(
  #   :D => (0.0, 1.0)
 )
 
+# Ranges (bounds -- based on 20% around values used in MS)
+bounds = Dict(
+    :o => (0.0, 1.0),
+    :w => (0.0, 1.0),
+    :H => (0.0, 1.0), ##is this a way to make sure it is always 0 ? 
+    :r => (0.8, 1.2), ##1.0
+    :K => (2.44, 3.66), ##3.05
+    :aR_P => (3.2, 4.8), ##4.0
+    :aR_C => (2.0, 3.0), ##2.5
+    :aC_P => (2.72, 4.08), #3.4
+    :aG_P => (2.72, 4.08), #3.4
+    :hR_C => (0.32, 0.48), #0.4
+    :hR_P => (1.0, 1.5), #1.25
+    :hC_P => (1.0, 1.5), #1.25#
+    :hG_P => (1.0, 1.5), #1.25
+    :e   => (0.64, 0.96), #0.8
+    :mC  => (0.8, 1.2), #1.0
+   # :mP  => (0.01, 1.5),
+    :G => (1.6, 2.4), #2.0
+  #  :G_base => (0.0, 10.0),
+ #   :l  => (0.0, 1.0),
+ #   :pf => (0.5, 10.0),
+ #   :D => (0.0, 1.0)
+)
 ##can also try just a 10-20% variance around the values we have in our model 
 ##could also try drawing from normal distribution rather than from a uniform 
 # Optional: which are log-scaled? - good for ones that span orders of magnitude
-logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])
+#logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])
 
 ##Helper functions - 
 # Map unit cube sample x∈[0,1] to parameter in [lo,hi] (linear or log)
@@ -77,7 +101,8 @@ function sample_nuisance(N::Int; rng=Random.default_rng())
         pairs = ntuple(j -> begin
             s = nuisance_syms[j]
             lo, hi = bounds[s]
-            val = map_to_range(X[i,j], lo, hi; logscaled = (s in logscale))
+        #    val = map_to_range(X[i,j], lo, hi; logscaled = (s in logscale))
+         val = map_to_range(X[i,j], lo, hi) ##trying out without logscaling 
             (s => val)
         end, d)
         samples[i] = NamedTuple(pairs)
