@@ -14,6 +14,7 @@ using QuasiMonteCarlo   # for LHS/Sobol sampling
 #using Statistics
 using Random
 using StatsPlots
+using Parquet
 
 ##source model - choose which based on which you want to investigate
 include("wf_model_eqs_subsidy_Pfixed.jl") ##model equations with P held constant, unique parameters per trophic level, active and passive omnivory parameter structures
@@ -186,14 +187,15 @@ o_grid = range(bounds[:o]...; length=11)
 w_grid = range(bounds[:w]...; length=11)
 H_grid = range(bounds[:H]...; length=3)
 
-Nrep = 3  # random nuisance samples per grid point (tune)
+Nrep = 50  # random nuisance samples per grid point (tune)
 
 # Pre-sample nuisance once to reuse (or sample per cell if you prefer)
 rng = MersenneTwister(42)
 p0 = ModelPar_active()
 nuisance_pool = sample_nuisance(Nrep; rng)
 
-##need to add conditions so that sampled parameter combinations satisfy inequalities that allow for persistence in an unforced model 
+##save parameter set to use for perturbation sensitivity analysis
+write_parquet("nuisane_parameter_pool_50.parquet", nuisance_pool)
 
 
 # Allocate result arrays: (|o|, |w|, |H|)
@@ -216,9 +218,7 @@ function make_par(o, w, H, ν::NamedTuple)
 end
 
 
-##trying version of function tat only calculates cv if feasible and keeps track if not feasible
 # Allocate a cell array that stores all runs for each (o,w,H)-- for unforced model 
-
 runs_stab_unforced = [NamedTuple[] for _ in 1:length(o_grid), _ in 1:length(w_grid), _ in 1:length(H_grid)]
 @info "Running robustness grid..."
 for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enumerate(H_grid)
@@ -273,6 +273,12 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enume
     end
 end
 @info "Done."
+
+##save output 
+all_runs_unforced = reduce(vcat, vec(runs_stab_unforced))
+all_runs_unforced = [(; run_id = i, r...) for (i, r) in enumerate(all_runs_unforced)]
+all_runs_unforced_df = DataFrame(all_runs_unforced)
+write_parquet("runs_stab_unforced.parquet", all_runs_unforced_df)
 
 cell = runs_stab_unforced[6,6,1]
 
@@ -363,6 +369,13 @@ for (io, o) in enumerate(o_grid), (iw, w) in enumerate(w_grid), (iH, H) in enume
 end
 
 @info "Done."
+
+##save output 
+all_runs_forced = reduce(vcat, vec(runs_stab_forced))
+all_runs_forced = [(; run_id = i, r...) for (i, r) in enumerate(all_runs_forced)]
+all_runs_forced_df = DataFrame(all_runs_forced)
+write_parquet("runs_stab_forced.parquet", all_runs_forced_df)
+
 
 cell = runs_stab_forced[6,6,1]
 cell[2]
