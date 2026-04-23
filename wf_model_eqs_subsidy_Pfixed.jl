@@ -5,6 +5,15 @@
 #using Pkg
 #Pkg.add("Plots")
 #Pkg.add("QuadGK")
+#Pkg.add("Parameters")
+#Pkg.add("DifferentialEquations")
+#Pkg.add("Symbolics")
+#Pkg.add("ForwardDiff")
+#Pkg.add("LinearAlgebra")
+#Pkg.add("NLsolve")
+#Pkg.add("DataFrames")
+#Pkg.add("Interact")
+#Pkg.add("Statistics")
 ##Load Libraries needed (ODE for later)
 using Parameters: @with_kw, @unpack ##imports Parameters package that provides convenient macros for working with keyword arugemnts, parameter structs and unpacking variables 
 using DifferentialEquations

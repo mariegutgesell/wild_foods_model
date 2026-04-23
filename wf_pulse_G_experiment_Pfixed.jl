@@ -17,7 +17,7 @@ function pulse_unit_forced(p; p_length = 50.0, p_strength = 0.25, pre_window = 2
     pulse_start = 200.0               ##time when pulse begins
     pulse_end = pulse_start + p_length      #time when pulse ends
    # pulse_event_times = union(pulse_start, pulse_end) #times where the pulse changes system
-    t_end = 350.0         #end of simulation
+    t_end = 275.0         #end of simulation
     t_span = (0.0, t_end)       #time span of simulation
     t_start = 175.0         #start of post-pulse tracking (i.e., when tracking starts to capture pulse and dynamics after)
     len = 1000           ##resolution of the time grid
@@ -171,7 +171,14 @@ function plot_pulse_timeseries_2(pulse;
     tmin=175.0,
     ylims=(0.0, 1.0),
     use_raw=false,
-    colors = (:black, :darkgreen, :salmon, :lightgreen, :pink, :blue),
+    colors = (
+    colorant"black",
+    RGBA(colorant"darkgreen", 0.6),
+    RGBA(colorant"darkblue", 0.6),
+    RGBA(colorant"lightgreen", 0.6),
+    RGBA(colorant"lightblue", 0.6),
+    RGBA(colorant"purple", 0.6),
+),
     show_pulse=true
 )
     if use_raw
@@ -201,11 +208,11 @@ function plot_pulse_timeseries_2(pulse;
 
     plt = plot(tt, ft;  label="total → P", xlabel="Time", ylabel="Community Consumption",
                ylims=ylims, color=colors[1], linewidth=2.5, legend=false, framestyle=:box)
-    plot!(tt, fR1; label="R1 → P", color=colors[2], linewidth=2.5)
-    plot!(tt, fR2; label="R2 → P", color=colors[3], linewidth=2.5)
-    plot!(tt, fC1; label="C1 → P", color=colors[4], linewidth=2.5)
-    plot!(tt, fC2; label="C2 → P", color=colors[5], linewidth=2.5)
-    plot!(tt, fG;  label="G → P",  color=colors[6], linewidth=2.5)
+    plot!(tt, fR1; label="R1 → P", color=colors[2], linewidth=1.5)
+    plot!(tt, fR2; label="R2 → P", color=colors[3], linewidth=1.5)
+    plot!(tt, fC1; label="C1 → P", color=colors[4], linewidth=1.5)
+    plot!(tt, fC2; label="C2 → P", color=colors[5], linewidth=1.5)
+    plot!(tt, fG;  label="G → P",  color=colors[6], linewidth=1.5)
     plot!(tt, ft;  label="total → P",  color=colors[1], linewidth=2.5)
 
     if show_pulse && (:pulse in propertynames(pulse))
@@ -240,7 +247,6 @@ plot_pulse_timeseries(pulse_1; tmin=150.0)
 
 
 
-
 ###Plot relative decline
 # Pull the relative declines (dimensionless)
 declines = [
@@ -268,6 +274,105 @@ res_plot = bar(labels, declines_pct;
     yticks = :auto, ylims = (0.0, 30),  color = :black, size=(600, 800))
 
 savefig(res_plot, "resilience_plot")
+
+
+
+##Run perturbation experiment across all parameter sets in nuisane_parameter_pool_50.parquet
+using Parquet
+df = DataFrame(read_parquet("nuisane_parameter_pool_50.parquet"))
+
+
+param_sets = [ModelPar_active(o = 0.0,  ##placeholders, will be overwritten
+                            w = 0.0, ##placeholders, will be overwritten
+                        
+    r = row.r ,
+    K = row.K,
+    aR_P = row.aR_P,
+    aR_C = row.aR_C,
+    aC_P =row.aC_P,
+    aG_P =row.aG_P,
+    hR_C =row.hR_C,
+    hR_P =row.hR_P,
+    hC_P =row.hC_P,
+    hG_P =row.hG_P,
+    e   =row.e,
+    mC  =row.mC,
+    G =row.G,
+             ) for row in eachrow(df)]
+
+scenarios = [
+    (; scenario = "o=0.1, w=0.5", o = 0.1, w = 0.5),
+    (; scenario = "o=0.2, w=0.0", o = 0.2, w = 0.0),
+    (; scenario = "o=0.0, w=0.0", o = 0.0, w = 0.0)
+]
+
+
+
+results = DataFrame(
+    run_id = Int[],
+    scenario = String[],
+    o = Float64[],
+    w = Float64[],
+    decline_rel_baseline = Float64[]
+)
+
+for (i, base_p) in enumerate(param_sets)
+    for sc in scenarios
+        p = deepcopy(base_p)
+        p.o = sc.o
+        p.w = sc.w
+
+        pulse = pulse_unit_forced(p)
+
+        push!(results, (
+            i,
+            sc.scenario,
+            sc.o,
+            sc.w,
+            pulse.decline_rel_baseline
+        ))
+    end
+end
+
+using StatsPlots
+using Pkg
+#Pkg.add("CategoricalArrays")
+using CategoricalArrays
+results.scenario = categorical(
+    results.scenario,
+    levels = [
+        "o=0.1, w=0.5",
+        "o=0.2, w=0.0",
+        "o=0.0, w=0.0"
+    ],
+    ordered = true
+)
+@df results boxplot(
+    :scenario,
+    100 .* :decline_rel_baseline,
+    ylabel = "% Food Consumption Decline",
+    xlabel = "",
+    legend = false,
+    framestyle = :box,
+    xrotation = 15,
+    size = (600, 800),
+    color = :grey
+)
+
+
+@df results dotplot!(
+    :scenario,
+    100 .* :decline_rel_baseline,
+    color = :black,
+    alpha = 0.5,
+    markerstrokewidth = 0,
+    legend = false
+)
+
+
+
+
+
 
 
 ###Seeing if i can create plot of decline relative to baseline for all values of H 

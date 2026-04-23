@@ -30,7 +30,7 @@ const p0 = ModelPar_active()
 ##1) Sensitivity analysis just for structure -- so keeping H at 0 (constant)
 # --- Bounds: focal vs nuisance ---
 focal_syms    = (:o, :w)   # for this first one only focusing on o and w 
-nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G)
+nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P, :e, :mC, :G) ##april 26: if H and G are 0, then don't need to include them here in nuisance params? 
 
 # Ranges (based on univariate stability analysis)
 #bounds = Dict(
@@ -61,7 +61,7 @@ nuisance_syms = (:H, :r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :h
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
-    :H => (0.0, 0.5), 
+    :H => (0.0, 0.0), ##april 26: do we want to keep H at 0 for the sensitivity analysis? - yes. 
     :r => (0.8, 1.2), ##1.0
     :K => (2.44, 3.66), ##3.05
     :aR_P => (3.2, 4.8), ##4.0
@@ -75,7 +75,7 @@ bounds = Dict(
     :e   => (0.64, 0.96), #0.8
     :mC  => (0.8, 1.2), #1.0
    # :mP  => (0.01, 1.5),
-    :G => (1.6, 2.4), #2.0
+    :G => (1.6, 2.4), #2.0  ##april 26: if H is 0, then G shouldn't change or really be involved right .. G is the amount of groceries
   #  :G_base => (0.0, 10.0),
  #   :l  => (0.0, 1.0),
  #   :pf => (0.5, 10.0),
@@ -83,7 +83,7 @@ bounds = Dict(
 )
 ##can also try just a 10-20% variance around the values we have in our model 
 ##could also try drawing from normal distribution rather than from a uniform 
-# Optional: which are log-scaled? - good for ones that span orders of magnitude
+# Optional: which are log-scaled? - good for ones that span orders of magnitude - note april 26: i think because trying w/ 20% range, don't need to logscale - not huge magnitudes 
 #logscale = Set([:aR_P, :aR_C, :aG_P, :aC_P, :mC, :hR_C, :hR_P, :hC_P, :hG_P])
 
 ##Helper functions - 

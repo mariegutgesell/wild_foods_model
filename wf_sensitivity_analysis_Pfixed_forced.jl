@@ -54,7 +54,7 @@ nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P,
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
-    :H => (0.0, 1.0), ##is this a way to make sure it is always 0 ? 
+    :H => (0.0, 1.0), ##
     :r => (0.8, 1.2), ##1.0
     :K => (2.44, 3.66), ##3.05
     :aR_P => (3.2, 4.8), ##4.0
@@ -116,7 +116,7 @@ function sample_nuisance(N::Int; rng=Random.default_rng())
     samples
 end
 
-##trying new constrained sampling - constraining 
+##trying new constrained sampling - constraining - april 26: i think don't need to do constrained w/ the feasible param set now that using 20% range 
 ##set seed
 Random.seed!(42)
 ##setting a series of anchors 
@@ -420,6 +420,73 @@ cv_median_H05 = cv_median[:, :, 2]
          colorbar_title = "cv total harvest")
 
 
+
+##trying to plot with a legend with two color bars 
+##Plot heatmap using Makie to try and get the two legends
+
+# Split into two matrices:
+low  = copy(cv_median_H0)
+high = copy(cv_median_H0)
+
+# Keep only low values ≤ 0.14
+low[low .> 0.14] .= NaN
+
+# Keep only high values ≥ 5.5
+high[high .< .55] .= NaN
+
+using Pkg
+#Pkg.add("CairoMakie")
+using CairoMakie
+fig = CairoMakie.Figure(size = (800, 600))
+ax  = CairoMakie.Axis(fig[1, 1],xlabel = "Omnivory Preference (o)", ylabel = "Habitat Preference (w)", aspect = 1,     xlabelsize = 22,   ylabelsize = 22,   xticklabelsize = 14, yticklabelsize = 14)
+
+# Transparent color for NaNs
+trans = CairoMakie.RGBAf(0, 0, 0, 0)
+
+# Small range heatmap
+hm_low = CairoMakie.heatmap!(ax, o_grid, w_grid, 
+    low; ##the "'" transposes the matrix so it has the right x and y orientation
+    colorrange = (0.0, 0.14),
+    colormap   = :viridis,
+    nan_color   = trans,
+   # flexible = false,
+)
+
+# Big range heatmap (overlaid)
+hm_high = CairoMakie.heatmap!(ax, o_grid, w_grid, high;
+    colorrange = (.55, .68),
+    colormap   = :reds,
+    nan_color   = trans,
+   # flexible = false,
+)
+
+# Ticks & limits 0–1 (adjust step if needed)
+ax.xticks = 0.0:0.2:1.0
+ax.yticks = 0.0:0.2:1.0
+#CairoMakie.xlims!(ax, 0.0, 1.0)
+#CairoMakie.ylims!(ax, 0.0, 1.0)
+
+# Two separate colorbars
+# Right-hand column just for the stacked colorbars
+cbcol = fig[1, 2] = GridLayout()
+
+# Stack them: row 1 = high range, row 2 = low range
+cb_high = Colorbar(cbcol[1, 1], hm_high;
+    label  = ".55–0.68",
+    vertical = true,
+)
+
+cb_low  = Colorbar(cbcol[2, 1], hm_low;
+    label  = "0–0.14",
+    vertical = true,
+)
+
+# Make sure they have *exactly* the same width,
+# so they line up perfectly in that column
+colsize!(cbcol, 1, Fixed(22))
+fig
+
+
 # NEXT:
 # 1) Increase Nrep to ~50
 # 2) Save parameter set 
@@ -427,7 +494,7 @@ cv_median_H05 = cv_median[:, :, 2]
 # 3) Plot heat map when H = 0
 # 4) Use saved parameter set and run perturbation experiment and save boxplots
 
-
+##FUCK YEA - April 26 this works 
 
 
 
