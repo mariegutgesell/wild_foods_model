@@ -837,6 +837,9 @@ function fr_cv_forced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
         sd_C1 = std(fr_C1),
         sd_C2 = std(fr_C2),
         sd_G = std(fr_G),
+         t_grid = collect(t_grid),
+        fr_total = fr_total,
+        fr_components = (; fr_R1, fr_R2, fr_C1, fr_C2, fr_G)
     )
 end
 

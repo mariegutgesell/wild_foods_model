@@ -50,7 +50,7 @@ nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P,
  #   :D => (0.0, 1.0)
 #)
 
-# Ranges (bounds -- based on 20% around values used in MS)
+# Ranges (bounds -- based on 20% around values used in MS) -- can try widening the range, and doing more samples 
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
@@ -495,6 +495,187 @@ fig
 # 4) Use saved parameter set and run perturbation experiment and save boxplots
 
 ##FUCK YEA - April 26 this works 
+
+
+##Okay trying to plot out 4 time series, and a boxplot 
+using Parquet
+df = DataFrame(read_parquet("nuisane_parameter_pool_50.parquet"))
+
+
+param_sets = [ModelPar_active(o = 0.0,  ##placeholders, will be overwritten
+                            w = 0.0, ##placeholders, will be overwritten
+                        H = 0.0,
+    r = row.r ,
+    K = row.K,
+    aR_P = row.aR_P,
+    aR_C = row.aR_C,
+    aC_P =row.aC_P,
+    aG_P =row.aG_P,
+    hR_C =row.hR_C,
+    hR_P =row.hR_P,
+    hC_P =row.hC_P,
+    hG_P =row.hG_P,
+    e   =row.e,
+    mC  =row.mC,
+    G =row.G,
+             ) for row in eachrow(df)]
+
+scenarios = [
+    (; scenario = "o=0.1, w=0.5, H = 0.5", o = 0.1, w = 0.5, H = 0.5),
+ #   (; scenario = "o=0.2, w=0.0, H = 0.5", o = 0.2, w = 0.0, H = 0.5),
+    (; scenario = "o=0.0, w=0.0, H = 0.5", o = 0.0, w = 0.0, H = 0.5),
+    (; scenario = "o=0.1, w=0.5, H = 0.9", o = 0.1, w = 0.5, H = 0.9),
+]
+
+
+
+results = DataFrame(
+    run_id = Int[],
+    scenario = String[],
+    o = Float64[],
+    w = Float64[],
+    H = Float64[],
+    cv_total = Float64[],
+)
+
+for (i, base_p) in enumerate(param_sets)
+    for sc in scenarios
+        p = deepcopy(base_p)
+        p.o = sc.o
+        p.w = sc.w
+        p.H = sc.H
+
+        out_cv = fr_cv_forced(
+            p;
+            u0 = [1.5, 1.5, 1.0, 1.0, 0.25],
+            t_warmup = 300.0,
+            t_eval = 500.0,
+            ngrid = 800
+        )
+
+        push!(results, (
+            i,
+            sc.scenario,
+            sc.o,
+            sc.w,
+            sc.H,
+            out_cv.cv_total
+        ))
+    end
+end
+
+using CategoricalArrays
+
+results.scenario = categorical(
+    results.scenario,
+    levels = [
+        "o=0.0, w=0.0, H = 0.5",
+    #    "o=0.2, w=0.0, H = 0.5",
+        "o=0.1, w=0.5, H = 0.5",
+        "o=0.1, w=0.5, H = 0.9",
+    ],
+    ordered = true
+)
+
+
+using StatsPlots
+
+cv_plot = @df results boxplot(
+    :scenario,
+    :cv_total,
+    ylabel = "CV of Food Consumption",
+    xlabel = "",
+    legend = false,
+    framestyle = :box,
+    xrotation = 15,
+    size = (900, 400),
+    color = :grey
+)
+
+@df results dotplot!(
+    :scenario,
+    :cv_total,
+    color = :black,
+    alpha = 0.5,
+    markerstrokewidth = 0,
+    legend = false
+)
+
+cv_plot
+
+
+##function to plot timeseries:
+function plot_cv_timeseries(cv; 
+    tmin=175.0,
+    ylims=(0.0, 1.0),
+    colors = (
+    colorant"black",
+    RGBA(colorant"darkgreen", 0.6),
+    RGBA(colorant"darkblue", 0.6),
+    RGBA(colorant"lightgreen", 0.6),
+    RGBA(colorant"lightblue", 0.6),
+    RGBA(colorant"purple", 0.6),
+)
+)
+
+    t   = cv.t_grid
+    ft  = cv.fr_total
+    fR1 = cv.fr_components.fr_R1
+    fR2 = cv.fr_components.fr_R2
+    fC1 = cv.fr_components.fr_C1
+    fC2 = cv.fr_components.fr_C2
+    fG  = cv.fr_components.fr_G
+
+    m = t .>= tmin
+
+    tt  = t[m]
+    ft  = ft[m]
+    fR1 = fR1[m]
+    fR2 = fR2[m]
+    fC1 = fC1[m]
+    fC2 = fC2[m]
+    fG  = fG[m]
+
+    plt = plot(
+        tt, ft;
+        label = "total → P",
+        xlabel = "Time",
+        ylabel = "Community Consumption",
+        ylims = ylims,
+        color = colors[1],
+        linewidth = 2.5,
+        legend = true,
+        framestyle = :box
+    )
+
+    plot!(tt, fR1; label = "R1 → P", color = colors[2], linewidth = 1.5)
+    plot!(tt, fR2; label = "R2 → P", color = colors[3], linewidth = 1.5)
+    plot!(tt, fC1; label = "C1 → P", color = colors[4], linewidth = 1.5)
+    plot!(tt, fC2; label = "C2 → P", color = colors[5], linewidth = 1.5)
+    plot!(tt, fG;  label = "G → P",  color = colors[6], linewidth = 1.5)
+
+    return plt
+end
+u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.05, G_base = 1.0)
+cv_1 = fr_cv_forced(p1; u0 = u0)
+
+p2 = ModelPar_active(o = 0.2, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
+cv_2 = fr_cv_forced(p2;u0 = u0)
+
+
+p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
+cv_3 = fr_cv_forced(p3;u0 = u0)
+
+p4 = ModelPar_active(o = 0.1, w = 0.5, H = 0.9, K = 3.05, G_base = 1.0)
+cv_4 = fr_cv_forced(p4;u0 = u0)
+
+
+plot_cv_timeseries(cv_1; tmin=150.0)
+plot_cv_timeseries(cv_2; tmin=150.0)
+plot_cv_timeseries(cv_3; tmin=150.0)
+plot_cv_timeseries(cv_4; tmin=150.0)
+
 
 
 

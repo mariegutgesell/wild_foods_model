@@ -169,6 +169,7 @@ end
 ##function to plot timeseries so have proper colors for total harvest when only groceries
 function plot_pulse_timeseries_2(pulse; 
     tmin=175.0,
+ #   tmax = 240.0,
     ylims=(0.0, 1.0),
     use_raw=false,
     colors = (
@@ -237,28 +238,42 @@ pulse_2 = pulse_unit_forced(p2)
 p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
 pulse_3 = pulse_unit_forced(p3)
 
-plot_pulse_timeseries_2(pulse_1; tmin=150.0)
+p4 = ModelPar_active(o = 0.1, w = 0.5, H = 0.9, K = 3.05, G_base = 1.0)
+pulse_4 = pulse_unit_forced(p4)
+
+
+plot_pulse_timeseries_2(pulse_1; tmin=150.0, tmax = 240.0)
 plot_pulse_timeseries_2(pulse_2; tmin=150.0)
 plot_pulse_timeseries_2(pulse_3; tmin=150.0)
+plot_pulse_timeseries_2(pulse_4; tmin=150.0)
+
 
 plot_pulse_timeseries(pulse_1; tmin=150.0)
 
 
+p4 = ModelPar_active(o = 0.0, w = 0.0, H = 1.0, K = 3.05, G_base = 1.0)
+pulse_4 = pulse_unit_forced(p4)
 
 
+plot_pulse_timeseries_2(pulse_1; tmin=150.0)
+plot_pulse_timeseries_2(pulse_2; tmin=150.0)
+plot_pulse_timeseries_2(pulse_3; tmin=150.0)
+plot_pulse_timeseries_2(pulse_4; tmin=150.0)
 
 ###Plot relative decline
 # Pull the relative declines (dimensionless)
 declines = [
+     pulse_3.decline_rel_baseline,
+      pulse_2.decline_rel_baseline,
     pulse_1.decline_rel_baseline,
-    pulse_2.decline_rel_baseline,
-    pulse_3.decline_rel_baseline
+    pulse_4.decline_rel_baseline
 ]
 
 labels = [
-    "o=0.1, w=0.5, H=0.5",
-     "o=0.2, w=0.0, H=0.5",
-    "o=0.0, w=0.0, H=0.5"
+     "o=0.0, w=0.0, H=0.5",
+    "o=0.2, w=0.0, H=0.5",
+    "o=0.1, w=0.5, H=0.5", 
+    "o=0.1 w=0.5, H=0.9"
 ]
 
 # Convert to % for display (optional but nice)
@@ -271,7 +286,9 @@ res_plot = bar(labels, declines_pct;
     xlabel = "",
     framestyle = :box,
     xrotation = 15,
-    yticks = :auto, ylims = (0.0, 30),  color = :black, size=(600, 800))
+   # yticks = :auto, 
+   ylim = (0,40),
+     color = :black, size=(600, 800))
 
 savefig(res_plot, "resilience_plot")
 
@@ -284,7 +301,7 @@ df = DataFrame(read_parquet("nuisane_parameter_pool_50.parquet"))
 
 param_sets = [ModelPar_active(o = 0.0,  ##placeholders, will be overwritten
                             w = 0.0, ##placeholders, will be overwritten
-                        
+                        H = 0.0,
     r = row.r ,
     K = row.K,
     aR_P = row.aR_P,
@@ -301,9 +318,10 @@ param_sets = [ModelPar_active(o = 0.0,  ##placeholders, will be overwritten
              ) for row in eachrow(df)]
 
 scenarios = [
-    (; scenario = "o=0.1, w=0.5", o = 0.1, w = 0.5),
-    (; scenario = "o=0.2, w=0.0", o = 0.2, w = 0.0),
-    (; scenario = "o=0.0, w=0.0", o = 0.0, w = 0.0)
+    (; scenario = "o=0.1, w=0.5, H = 0.5", o = 0.1, w = 0.5, H = 0.5),
+ #   (; scenario = "o=0.2, w=0.0, H = 0.5", o = 0.2, w = 0.0, H = 0.5),
+    (; scenario = "o=0.0, w=0.0, H = 0.5", o = 0.0, w = 0.0, H = 0.5),
+    (; scenario = "o=0.1, w=0.5, H = 0.9", o = 0.1, w = 0.5, H = 0.9),
 ]
 
 
@@ -313,6 +331,7 @@ results = DataFrame(
     scenario = String[],
     o = Float64[],
     w = Float64[],
+    H = Float64[],
     decline_rel_baseline = Float64[]
 )
 
@@ -321,6 +340,7 @@ for (i, base_p) in enumerate(param_sets)
         p = deepcopy(base_p)
         p.o = sc.o
         p.w = sc.w
+        p.H = sc.H
 
         pulse = pulse_unit_forced(p)
 
@@ -329,6 +349,7 @@ for (i, base_p) in enumerate(param_sets)
             sc.scenario,
             sc.o,
             sc.w,
+            sc.H,
             pulse.decline_rel_baseline
         ))
     end
@@ -341,9 +362,10 @@ using CategoricalArrays
 results.scenario = categorical(
     results.scenario,
     levels = [
-        "o=0.1, w=0.5",
-        "o=0.2, w=0.0",
-        "o=0.0, w=0.0"
+          "o=0.0, w=0.0, H = 0.5",
+    #     "o=0.2, w=0.0, H = 0.5",
+        "o=0.1, w=0.5, H = 0.5",
+        "o=0.1, w=0.5, H = 0.9",
     ],
     ordered = true
 )
@@ -355,7 +377,7 @@ results.scenario = categorical(
     legend = false,
     framestyle = :box,
     xrotation = 15,
-    size = (600, 800),
+    size = (900, 400),
     color = :grey
 )
 
@@ -422,6 +444,7 @@ plot(df_pulse_1.H, rel_decline_1, color = :black, linestyle = :solid, ylabel = "
 plot!(df_pulse_2.H, rel_decline_2, color = :black, linestyle = :dash,  ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.2, w = 0", linewidth = 2.5)
 plot!(df_pulse_3.H, rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.1, w = 0.5", linewidth = 2.5)
 
+plot(df_pulse_3.H, 1 ./ rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "1/Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.1, w = 0.5", linewidth = 2.5)
 
 
 ##sample code for doing burn in stuff. ...
