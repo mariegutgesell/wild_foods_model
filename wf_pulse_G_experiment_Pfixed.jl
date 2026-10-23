@@ -228,21 +228,24 @@ p = ModelPar_active()
 test = pulse_unit_forced(p)
 
 ##Calculate decline for 3 different scenarios
-p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.05, G_base = 1.0)
+#high diversity, low reliance 
+p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.25, G_base = 1.0)
 pulse_1 = pulse_unit_forced(p1)
 
-p2 = ModelPar_active(o = 0.2, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
+#low diversity, high reliance
+p2 = ModelPar_active(o = 0.0, w = 0.0, H = 0.9, K = 3.25, G_base = 1.0)
 pulse_2 = pulse_unit_forced(p2)
 
-
-p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
+#low diversity, low reliance
+p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.25, G_base = 1.0)
 pulse_3 = pulse_unit_forced(p3)
 
-p4 = ModelPar_active(o = 0.1, w = 0.5, H = 0.9, K = 3.05, G_base = 1.0)
+#high diversity, high reliance
+p4 = ModelPar_active(o = 0.1, w = 0.5, H = 0.9, K = 3.25, G_base = 1.0)
 pulse_4 = pulse_unit_forced(p4)
 
 
-plot_pulse_timeseries_2(pulse_1; tmin=150.0, tmax = 240.0)
+plot_pulse_timeseries_2(pulse_1; tmin=150.0)
 plot_pulse_timeseries_2(pulse_2; tmin=150.0)
 plot_pulse_timeseries_2(pulse_3; tmin=150.0)
 plot_pulse_timeseries_2(pulse_4; tmin=150.0)
@@ -270,10 +273,10 @@ declines = [
 ]
 
 labels = [
-     "o=0.0, w=0.0, H=0.5",
-    "o=0.2, w=0.0, H=0.5",
-    "o=0.1, w=0.5, H=0.5", 
-    "o=0.1 w=0.5, H=0.9"
+     "low diversity, low reliance",
+    "low diversity, high reliance",
+    "high diversity, low reliance", 
+    "high diversity, high reliance"
 ]
 
 # Convert to % for display (optional but nice)
@@ -318,10 +321,10 @@ param_sets = [ModelPar_active(o = 0.0,  ##placeholders, will be overwritten
              ) for row in eachrow(df)]
 
 scenarios = [
-    (; scenario = "o=0.1, w=0.5, H = 0.5", o = 0.1, w = 0.5, H = 0.5),
- #   (; scenario = "o=0.2, w=0.0, H = 0.5", o = 0.2, w = 0.0, H = 0.5),
-    (; scenario = "o=0.0, w=0.0, H = 0.5", o = 0.0, w = 0.0, H = 0.5),
-    (; scenario = "o=0.1, w=0.5, H = 0.9", o = 0.1, w = 0.5, H = 0.9),
+    (; scenario = "high diversity, low reliance", o = 0.1, w = 0.5, H = 0.5),
+    (; scenario = "low diversity, high reliance", o = 0.0, w = 0.0, H = 0.9),
+    (; scenario = "low diversity, low reliance", o = 0.0, w = 0.0, H = 0.5),
+    (; scenario = "high diversity, high reliance", o = 0.1, w = 0.5, H = 0.9),
 ]
 
 
@@ -362,10 +365,10 @@ using CategoricalArrays
 results.scenario = categorical(
     results.scenario,
     levels = [
-          "o=0.0, w=0.0, H = 0.5",
-    #     "o=0.2, w=0.0, H = 0.5",
-        "o=0.1, w=0.5, H = 0.5",
-        "o=0.1, w=0.5, H = 0.9",
+     "low diversity, low reliance",
+       "low diversity, high reliance",
+       "high diversity, low reliance",
+        "high diversity, high reliance",
     ],
     ordered = true
 )
@@ -376,7 +379,7 @@ results.scenario = categorical(
     xlabel = "",
     legend = false,
     framestyle = :box,
-    xrotation = 15,
+    xrotation = 0,
     size = (900, 400),
     color = :grey
 )

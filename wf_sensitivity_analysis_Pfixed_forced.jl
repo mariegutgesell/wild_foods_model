@@ -51,6 +51,7 @@ nuisance_syms = (:r, :K, :aR_C, :aR_P, :aC_P, :aG_P, :hR_P, :hR_C, :hC_P, :hG_P,
 #)
 
 # Ranges (bounds -- based on 20% around values used in MS) -- can try widening the range, and doing more samples 
+###do this with 30, 40, 50 % -- and then how many are feasible? 
 bounds = Dict(
     :o => (0.0, 1.0),
     :w => (0.0, 1.0),
@@ -521,10 +522,10 @@ param_sets = [ModelPar_active(o = 0.0,  ##placeholders, will be overwritten
              ) for row in eachrow(df)]
 
 scenarios = [
-    (; scenario = "o=0.1, w=0.5, H = 0.5", o = 0.1, w = 0.5, H = 0.5),
- #   (; scenario = "o=0.2, w=0.0, H = 0.5", o = 0.2, w = 0.0, H = 0.5),
-    (; scenario = "o=0.0, w=0.0, H = 0.5", o = 0.0, w = 0.0, H = 0.5),
-    (; scenario = "o=0.1, w=0.5, H = 0.9", o = 0.1, w = 0.5, H = 0.9),
+    (; scenario = "high diversity, low reliance", o = 0.1, w = 0.5, H = 0.5), #high diversity low reliance
+    (; scenario = "low diversity, high reliance", o = 0.2, w = 0.0, H = 0.5), #low diversity, high reliance
+    (; scenario = "low diversity, low reliance", o = 0.0, w = 0.0, H = 0.5), #low diversity, low reliance
+    (; scenario = "high diversity, high reliance", o = 0.1, w = 0.5, H = 0.9), #high diversity, high reliance
 ]
 
 
@@ -569,10 +570,10 @@ using CategoricalArrays
 results.scenario = categorical(
     results.scenario,
     levels = [
-        "o=0.0, w=0.0, H = 0.5",
-    #    "o=0.2, w=0.0, H = 0.5",
-        "o=0.1, w=0.5, H = 0.5",
-        "o=0.1, w=0.5, H = 0.9",
+       "low diversity, low reliance",
+       "low diversity, high reliance",
+       "high diversity, low reliance",
+        "high diversity, high reliance",
     ],
     ordered = true
 )
@@ -587,7 +588,7 @@ cv_plot = @df results boxplot(
     xlabel = "",
     legend = false,
     framestyle = :box,
-    xrotation = 15,
+    xrotation = 0,
     size = (900, 400),
     color = :grey
 )
@@ -657,17 +658,21 @@ function plot_cv_timeseries(cv;
     return plt
 end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.05, G_base = 1.0)
+
+##high diversity, low reliance 
+p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.25, G_base = 1.0)
 cv_1 = fr_cv_forced(p1; u0 = u0)
 
-p2 = ModelPar_active(o = 0.2, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
+#low diversity, high reliance
+p2 = ModelPar_active(o = 0.0, w = 0.0, H = 0.9, K = 3.25, G_base = 1.0)
 cv_2 = fr_cv_forced(p2;u0 = u0)
 
-
-p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.05, G_base = 1.0)
+#low diversity, low reliance
+p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.25, G_base = 1.0)
 cv_3 = fr_cv_forced(p3;u0 = u0)
 
-p4 = ModelPar_active(o = 0.1, w = 0.5, H = 0.9, K = 3.05, G_base = 1.0)
+#high diversity, high reliance
+p4 = ModelPar_active(o = 0.1, w = 0.5, H = 0.9, K = 3.25, G_base = 1.0)
 cv_4 = fr_cv_forced(p4;u0 = u0)
 
 
