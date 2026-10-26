@@ -194,17 +194,30 @@ plot!(df_cv_w.H, df_cv_w.cv_G, label = "G consumption", xlabel = "H", ylabel = "
 
 
 ##do range of H next
-results_H_f = []
-for H in 0.0:0.1:1.0
+results_H_f_1 = []
+for H in 0.1:0.1:0.9
     u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
-    pᵢ = ModelPar_active(w=0.5, o=0.5, H=H, K = 3.05)  # add other defaults as needed
+    pᵢ = ModelPar_active(w=0.0, o=0.0, H=H, K = 4.25)  # add other defaults as needed
     cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
-    push!(results_H_f, (; H, cv_nt...))  # NamedTuple splat into the row
+    push!(results_H_f_1, (; H, cv_nt...))  # NamedTuple splat into the row
 end
-df_cv_w = DataFrame(results_H_f)
+df_cv_w_1 = DataFrame(results_H_f_1)
+
+results_H_f_2 = []
+for H in 0.1:0.1:0.9
+    u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+    pᵢ = ModelPar_active(w=0.5, o=0.1, H=H, K = 4.25)  # add other defaults as needed
+    cv_nt = fr_cv_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_H_f_2, (; H, cv_nt...))  # NamedTuple splat into the row
+end
+df_cv_w_2 = DataFrame(results_H_f_2)
 
 #FIG 3:
-plot(df_cv_w.H, df_cv_w.cv_total, label = "total consumption", xlabel = "Grocery Preference (H)", ylabel = "CV of Total Harvest", color = :black, linewidth = 2.5, legend = false)
+plot(df_cv_w_1.H, 1 ./df_cv_w_1.cv_total, linestyle = :solid, label = "low harvest diversity", xlabel = "Grocery Preference (H)", ylabel = "1/CV of Total Harvest", color = :black, linewidth = 2.5)
+plot!(df_cv_w_2.H, 1 ./df_cv_w_2.cv_total, linestyle = :dashdotdot, label = "high harvest diversity", xlabel = "Grocery Preference (H)", ylabel = "1/CV of Total Harvest", color = :black, linewidth = 2.5)
+
+
+
 
 ##others:
 plot!(df_cv_w.H, df_cv_w.cv_R1, label = "R1 consumption", xlabel = "H", ylabel = "CV")

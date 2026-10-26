@@ -639,9 +639,9 @@ function plot_cv_timeseries(cv;
 
     plt = plot(
         tt, ft;
-        label = "total → P",
+        label = "low grocery reliance",
         xlabel = "Time",
-        ylabel = "Community Consumption",
+        ylabel = "Total Harvest",
         ylims = ylims,
         color = colors[1],
         linewidth = 2.5,
@@ -649,18 +649,18 @@ function plot_cv_timeseries(cv;
         framestyle = :box
     )
 
-    plot!(tt, fR1; label = "R1 → P", color = colors[2], linewidth = 1.5)
-    plot!(tt, fR2; label = "R2 → P", color = colors[3], linewidth = 1.5)
-    plot!(tt, fC1; label = "C1 → P", color = colors[4], linewidth = 1.5)
-    plot!(tt, fC2; label = "C2 → P", color = colors[5], linewidth = 1.5)
-    plot!(tt, fG;  label = "G → P",  color = colors[6], linewidth = 1.5)
+  #  plot!(tt, fR1; label = "R1 → P", color = colors[2], linewidth = 1.5)
+  #  plot!(tt, fR2; label = "R2 → P", color = colors[3], linewidth = 1.5)
+  #  plot!(tt, fC1; label = "C1 → P", color = colors[4], linewidth = 1.5)
+  #  plot!(tt, fC2; label = "C2 → P", color = colors[5], linewidth = 1.5)
+  #  plot!(tt, fG;  label = "G → P",  color = colors[6], linewidth = 1.5)
 
     return plt
 end
 u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
 
 ##high diversity, low reliance 
-p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.5, K = 3.25, G_base = 1.0)
+p1 = ModelPar_active(o = 0.1, w = 0.5, H = 0.2, K = 3.25, G_base = 1.0)
 cv_1 = fr_cv_forced(p1; u0 = u0)
 
 #low diversity, high reliance
@@ -668,7 +668,7 @@ p2 = ModelPar_active(o = 0.0, w = 0.0, H = 0.9, K = 3.25, G_base = 1.0)
 cv_2 = fr_cv_forced(p2;u0 = u0)
 
 #low diversity, low reliance
-p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.5, K = 3.25, G_base = 1.0)
+p3 = ModelPar_active(o = 0.0, w = 0.0, H = 0.2, K = 3.25, G_base = 1.0)
 cv_3 = fr_cv_forced(p3;u0 = u0)
 
 #high diversity, high reliance
@@ -677,11 +677,33 @@ cv_4 = fr_cv_forced(p4;u0 = u0)
 
 
 plot_cv_timeseries(cv_1; tmin=150.0)
-plot_cv_timeseries(cv_2; tmin=150.0)
 plot_cv_timeseries(cv_3; tmin=150.0)
+
+plot_cv_timeseries(cv_2; tmin=150.0)
 plot_cv_timeseries(cv_4; tmin=150.0)
 
 
+##Low diversity
+plt = plot_cv_timeseries(cv_3; tmin=150.0)
+plot!(
+    plt,
+    cv_2.t_grid[cv_2.t_grid .>= 150.0],
+    cv_2.fr_total[cv_2.t_grid .>= 150.0];
+    label = "high grocery reliance",
+    color = :red,
+    linewidth = 2.5
+)
+
+##high diversity
+plt = plot_cv_timeseries(cv_1; tmin=150.0)
+plot!(
+    plt,
+    cv_4.t_grid[cv_4.t_grid .>= 150.0],
+    cv_4.fr_total[cv_4.t_grid .>= 150.0];
+    label = "high grocery reliance",
+    color = :red,
+    linewidth = 2.5
+)
 
 
 ##filter out only stable coexistence (i.e., where there is some persistence of all species at equilibrium)

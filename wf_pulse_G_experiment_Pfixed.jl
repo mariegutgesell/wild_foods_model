@@ -207,14 +207,14 @@ function plot_pulse_timeseries_2(pulse;
     fC1 = fC1[m]; fC2 = fC2[m]
     fG  = fG[m]
 
-    plt = plot(tt, ft;  label="total → P", xlabel="Time", ylabel="Community Consumption",
-               ylims=ylims, color=colors[1], linewidth=2.5, legend=false, framestyle=:box)
-    plot!(tt, fR1; label="R1 → P", color=colors[2], linewidth=1.5)
-    plot!(tt, fR2; label="R2 → P", color=colors[3], linewidth=1.5)
-    plot!(tt, fC1; label="C1 → P", color=colors[4], linewidth=1.5)
-    plot!(tt, fC2; label="C2 → P", color=colors[5], linewidth=1.5)
-    plot!(tt, fG;  label="G → P",  color=colors[6], linewidth=1.5)
-    plot!(tt, ft;  label="total → P",  color=colors[1], linewidth=2.5)
+    plt = plot(tt, ft;  label="low grocery reliance", xlabel="Time", ylabel="Community Consumption",
+               ylims=ylims, color=colors[1], linewidth=2.5,  framestyle=:box)
+ #   plot!(tt, fR1; label="R1 → P", color=colors[2], linewidth=1.5)
+ #   plot!(tt, fR2; label="R2 → P", color=colors[3], linewidth=1.5)
+ #   plot!(tt, fC1; label="C1 → P", color=colors[4], linewidth=1.5)
+ #   plot!(tt, fC2; label="C2 → P", color=colors[5], linewidth=1.5)
+ #   plot!(tt, fG;  label="G → P",  color=colors[6], linewidth=1.5)
+ #   plot!(tt, ft;  label="total → P",  color=colors[1], linewidth=2.5)
 
     if show_pulse && (:pulse in propertynames(pulse))
         ps = pulse.pulse.start
@@ -262,6 +262,29 @@ plot_pulse_timeseries_2(pulse_1; tmin=150.0)
 plot_pulse_timeseries_2(pulse_2; tmin=150.0)
 plot_pulse_timeseries_2(pulse_3; tmin=150.0)
 plot_pulse_timeseries_2(pulse_4; tmin=150.0)
+
+
+##high diversity
+plt = plot_pulse_timeseries_2(pulse_1; tmin=150.0)
+plot!(
+    plt,
+    pulse_4.t_grid[pulse_4.t_grid .>= 150.0],
+    pulse_4.fr_total[pulse_4.t_grid .>= 150.0];
+    label = "high grocery reliance",
+    color = :red,
+    linewidth = 2.5
+)
+
+##low diversity
+plt = plot_pulse_timeseries_2(pulse_3; tmin=150.0)
+plot!(
+    plt,
+    pulse_2.t_grid[pulse_2.t_grid .>= 150.0],
+    pulse_2.fr_total[pulse_2.t_grid .>= 150.0];
+    label = "high grocery reliance",
+    color = :red,
+    linewidth = 2.5
+)
 
 ###Plot relative decline
 # Pull the relative declines (dimensionless)
@@ -402,8 +425,8 @@ results.scenario = categorical(
 
 ###Seeing if i can create plot of decline relative to baseline for all values of H 
 results_H_all_f_1 = []
-for H in 0.1:0.1:1.0
-    p = ModelPar_active(w = 0.0, o = 0.0, H=H, l = 0.5)
+for H in 0.1:0.1:0.9
+    p = ModelPar_active(w = 0.0, o = 0.0, H=H, l = 0.5, K = 3.25)
     P0 = 0.25
     eq_data = pulse_unit_forced(p)
     push!(results_H_all_f_1, (; H=H, eq_data...))
@@ -417,7 +440,7 @@ plot(df_pulse_1.H, rel_decline_1, col = "red", ylabel = "Relative decline in har
 
 results_H_all_f_2 = []
 for H in 0.1:0.1:1.0
-    p = ModelPar_active(w = 0.0, o = 0.2, H=H, l = 0.5)
+    p = ModelPar_active(w = 0.0, o = 0.2, H=H, l = 0.5, K = 3.25)
     P0 = 0.25
     eq_data = pulse_unit_forced(p)
     push!(results_H_all_f_2, (; H=H, eq_data...))
@@ -430,8 +453,8 @@ plot(df_pulse_2.H, rel_decline_2,  ylabel = "Relative decline in harvest after p
 
 
 results_H_all_f_3 = []
-for H in 0.1:0.1:1.0
-    p = ModelPar_active(w = 0.5, o = 0.1, H=H, l = 0.5)
+for H in 0.1:0.1:0.9
+    p = ModelPar_active(w = 0.5, o = 0.1, H=H, l = 0.5, K = 3.25)
     P0 = 0.25
     eq_data = pulse_unit_forced(p)
     push!(results_H_all_f_3, (; H=H, eq_data...))
@@ -440,14 +463,15 @@ df_pulse_3 = DataFrame(results_H_all_f_3)
 
 
 rel_decline_3 = [row.decline_rel_baseline[1] for row in eachrow(df_pulse_3)]
-plot(df_pulse_3.H, rel_decline_3,  ylabel = "Relative decline in harvest after perturbation", xlabel = "H", label = "o = 0.0, w = 1.0")
+plot(df_pulse_3.H, rel_decline_3,  ylabel = "Relative decline in harvest after perturbation", xlabel = "H", label = "o = 0.1, w = 0.5")
 
 ##trying to see if i can plot all 3 together
 plot(df_pulse_1.H, rel_decline_1, color = :black, linestyle = :solid, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0, w = 0", linewidth = 2.5)
 plot!(df_pulse_2.H, rel_decline_2, color = :black, linestyle = :dash,  ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.2, w = 0", linewidth = 2.5)
 plot!(df_pulse_3.H, rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.1, w = 0.5", linewidth = 2.5)
 
-plot(df_pulse_3.H, 1 ./ rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "1/Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "o = 0.1, w = 0.5", linewidth = 2.5)
+plot(df_pulse_1.H, 1 ./ rel_decline_1,  color = :black, linestyle =  :solid, ylabel = "1/Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "low harvest diversity", linewidth = 2.5)
+plot!(df_pulse_3.H, 1 ./ rel_decline_3,  color = :black, linestyle =  :dashdotdot, ylabel = "1/Relative decline in harvest \nafter perturbation", xlabel = "Grocery Preference (H)", label = "high harvest diversity", linewidth = 2.5)
 
 
 ##sample code for doing burn in stuff. ...
