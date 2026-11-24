@@ -384,6 +384,19 @@ function total_FR_into_P(u, p ,t)
 end 
 
 
+##function to calculate o, w, and H - to see how preferences change over through dynamics
+function pref_dynamics(u, p, t)
+ #   @unpack  R1, R2, C1, C2, P = u 
+ # G = p.G_func(t)
+    pref_w = p.W(u, p, t)
+    pref_om_i = p.d_om_i(u, p, t)
+    pref_om_j = p.d_om_j(u, p, t)
+    pref_H = p.sub_pref(u, p, t)
+
+    return(pref_w, pref_om_i, pref_om_j, pref_H)
+end
+
+
 # Utilities for doing eigenvalue analysis
    ##this is a right-hand-side function that is used to solve ODEs 
 function rhs_forced(u, p, t=0.0)
@@ -840,6 +853,90 @@ function fr_cv_forced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
          t_grid = collect(t_grid),
         fr_total = fr_total,
         fr_components = (; fr_R1, fr_R2, fr_C1, fr_C2, fr_G)
+    )
+end
+
+# ---- run, sample post-warmup, compute preference dynamics----
+function pref_dynamics_unforced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    tspan = (0.0, t_eval)
+    prob  = ODEProblem(model_unforced!, u0, tspan, deepcopy(p))
+    sol   = solve(prob; reltol=1e-8, abstol=1e-8)
+
+    t_grid  = range(t_warmup, t_eval; length=ngrid)
+    us      = sol.(t_grid)
+
+    # time series of density dependent preference parameters
+    pref_W = Float64[]; pref_om_i = Float64[]; pref_om_j = Float64[]; pref_H = Float64[]
+
+    for (u, t) in zip(us, t_grid)
+        w, om_i, om_j, H = pref_dynamics(u, sol.prob.p, t)
+        push!(pref_W, w); push!(pref_om_i, om_i); push!(pref_om_j, om_j)
+        push!(pref_H, H)
+    end
+
+    return (; 
+       pref_W = mean(pref_W),
+       pref_om_i = mean(pref_om_i),
+       pref_om_j = mean(pref_om_j),
+       pref_H = mean(pref_H),
+
+       ##time series of preference parameters
+        time = collect(t_grid),
+
+    W_ts    = pref_W,
+    om_i_ts = pref_om_i,
+    om_j_ts = pref_om_j,
+    H_ts    = pref_H
+    )
+end
+
+
+function pref_dynamics_forced(p; u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    tspan = (0.0, t_eval)
+    prob  = ODEProblem(model_forced!, u0, tspan, deepcopy(p))
+    sol   = solve(prob; reltol=1e-8, abstol=1e-8)
+
+    t_grid  = range(t_warmup, t_eval; length=ngrid)
+    us      = sol.(t_grid)
+
+##time series of state variables
+    R1_ts = [u[1] for u in us]
+R2_ts = [u[2] for u in us]
+C1_ts = [u[3] for u in us]
+C2_ts = [u[4] for u in us]
+ 
+##calculate temporal R:C ratios 
+RC_i_ts = R1_ts ./ C1_ts
+RC_j_ts = R2_ts ./ C2_ts
+    # time series of density dependent preference parameters
+    pref_W = Float64[]; pref_om_i = Float64[]; pref_om_j = Float64[]; pref_H = Float64[]
+
+    for (u, t) in zip(us, t_grid)
+        w, om_i, om_j, H = pref_dynamics(u, sol.prob.p, t)
+        push!(pref_W, w); push!(pref_om_i, om_i); push!(pref_om_j, om_j)
+        push!(pref_H, H)
+    end
+
+    return (; 
+       pref_W = mean(pref_W),
+       pref_om_i = mean(pref_om_i),
+       pref_om_j = mean(pref_om_j),
+       pref_H = mean(pref_H),
+
+       ##time series of preference parameters
+        time = collect(t_grid),
+
+    W_ts    = pref_W,
+    om_i_ts = pref_om_i,
+    om_j_ts = pref_om_j,
+    H_ts    = pref_H,
+
+    ##plot dynmaics of R and C and R:C ratios
+    mean_RC_i = mean(RC_i_ts),
+mean_RC_j = mean(RC_j_ts),
+
+RC_i_ts = RC_i_ts,
+RC_j_ts = RC_j_ts,
     )
 end
 

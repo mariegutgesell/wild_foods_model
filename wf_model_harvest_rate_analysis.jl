@@ -217,7 +217,100 @@ plot(df_cv_w_1.H, 1 ./df_cv_w_1.cv_total, linestyle = :solid, label = "low harve
 plot!(df_cv_w_2.H, 1 ./df_cv_w_2.cv_total, linestyle = :dashdotdot, label = "high harvest diversity", xlabel = "Grocery Preference (H)", ylabel = "1/CV of Total Harvest", color = :black, linewidth = 2.5)
 
 
+##Plotting out what mean o, w and H are across range - for the two scenarios .. i think 
+results_H_f_1_prefs = []
+##low diversity
+for H in 0.1:0.1:0.9
+   # u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+      u0 = [1.0, 1.0, 1.0, 1.0, 0.25] ##test just to check that if we make densities more similar, this should make mean O more reflective of input o 
+ 
+    pᵢ = ModelPar_active(w=0.0, o=0.0, H=H, K = 3.25)  # add other defaults as needed
+    prefs = pref_dynamics_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_H_f_1_prefs, (; H, prefs...))  # NamedTuple splat into the row
+end
+df_prefs_w_1 = DataFrame(results_H_f_1_prefs)
 
+
+##high diversity
+results_H_f_2_prefs = []
+for H in 0.1:0.1:0.9
+   # u0 = [1.5, 1.5, 1.0, 1.0, 0.25]
+   u0 = [1.0, 1.0, 1.0, 1.0, 0.25] ##test just to check that if we make densities more similar, this should make mean O more reflective of input o 
+    pᵢ = ModelPar_active(w=0.5, o=0.1, H=H, K = 3.25)  # add other defaults as needed
+    prefs = pref_dynamics_forced(pᵢ; u0=u0, t_warmup=300.0, t_eval=500.0, ngrid=800)
+    push!(results_H_f_2_prefs, (; H, prefs...))  # NamedTuple splat into the row
+end
+df_prefs_w_2 = DataFrame(results_H_f_2_prefs)
+
+
+
+plot(df_prefs_w_1.H, df_prefs_w_1.pref_W, linestyle = :solid, label = "low harvest diversity", xlabel = "Grocery Preference (H)", ylabel = "mean habitat preference (W)", color = :black, linewidth = 2.5)
+plot!(df_prefs_w_2.H, df_prefs_w_2.pref_W, linestyle = :dashdotdot, label = "high harvest diversity", xlabel = "Grocery Preference (H)", ylabel = "mean habitat preference (W)", color = :black, linewidth = 2.5)
+
+##trying to plot out how density dependent params look:
+cols = palette(:viridis, nrow(df_prefs_w_1))
+
+pref_vars = [
+    (:W_ts,    :pref_W,    "Habitat preference (w)"),
+    (:om_i_ts, :pref_om_i, "Omnivory (o_i)"),
+    (:om_j_ts, :pref_om_j, "Omnivory (o_j)"),
+    (:H_ts,    :pref_H,    "Grocery preference (H)")
+]
+
+panels = []
+
+for (ts_var, mean_var, pref_name) in pref_vars
+
+    for (df, scenario) in [
+        (df_prefs_w_1, "Low diversity"),
+        (df_prefs_w_2, "High diversity")
+    ]
+
+        p = plot(
+            title=scenario,
+            ylabel=pref_name,
+            xlabel="Time",
+            ylims=(0,1),
+            legend=:outerright
+        )
+
+        for (i, row) in enumerate(eachrow(df))
+
+            # Temporal dynamics
+            plot!(p, row.time, row[ts_var],
+                  color=cols[i],
+                  linewidth=2,
+                  label="H = $(round(row.H, digits=1))")
+
+            # Mean realized preference
+            hline!(p, [row[mean_var]],
+                   color=cols[i],
+                   linestyle=:dot,
+                   linewidth=1.5,
+                   label=false)
+        end
+
+        push!(panels, p)
+    end
+end
+
+plot(panels...,
+     layout=(4,2),
+     size=(1200,1200),
+     link=:both)
+
+
+##okay i think the difference between intrinsic and realized preference functions depends on R:C ratio, so in this case, with high productiivty
+##under equilibrum / 300 time steps, have relatively high R:C , which then increases preference to 
+scatter(df_prefs_w_2.mean_RC_i,
+        df_prefs_w_2.pref_om_i,
+        label="Channel i",
+        xlabel="Mean R/C biomass ratio",
+        ylabel="Mean realized omnivory")
+
+scatter!(df_prefs_w_2.mean_RC_j,
+         df_prefs_w_2.pref_om_j,
+         label="Channel j")
 
 ##others:
 plot!(df_cv_w.H, df_cv_w.cv_R1, label = "R1 consumption", xlabel = "H", ylabel = "CV")
